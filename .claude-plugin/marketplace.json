@@ -6,6 +6,11 @@
   },
   "plugins": [
     {
+      "name": "dotnet",
+      "source": "./plugins/dotnet",
+      "description": "Personal C# / .NET / ASP.NET Core coding standards as an 8-skill family (csharp, ddd, web-api, validation, hardening, observability, testing) behind a router (index)."
+    },
+    {
       "name": "backend",
       "source": "./plugins/backend",
       "description": "Language-agnostic backend engineering rules and traps (modular monolith, DDD, outbox/idempotency, multi-tenancy, rate limiting, caching, resilience, security, observability, migrations, testing, CI) as one skill with 17 references."
