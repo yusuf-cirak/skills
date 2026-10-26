@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "description": "Language-agnostic backend engineering rules and traps for production services: one skill (backend-engineering) with 17 references covering modular monolith boundaries, DDD tactical patterns, CQRS pipelines, error modeling, outbox/inbox, idempotency and locking, multi-tenancy, rate limiting, caching, resilience, security hardening, untrusted input, observability, persistence and migrations, testing strategy, build/CI, API surface.",
+  "author": {
+    "name": "Yusuf Cirak",
+    "email": "rewal34@gmail.com"
+  },
+  "keywords": [
+    "backend",
+    "architecture",
+    "modular-monolith",
+    "ddd",
+    "outbox",
+    "idempotency",
+    "multi-tenancy",
+    "rate-limiting",
+    "caching",
+    "resilience",
+    "security",
+    "observability",
+    "testing",
+    "coding-standards"
+  ]
+}

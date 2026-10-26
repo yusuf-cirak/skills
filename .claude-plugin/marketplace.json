@@ -1,0 +1,14 @@
+{
+  "name": "yusufcirak",
+  "owner": {
+    "name": "Yusuf Cirak",
+    "email": "rewal34@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "backend",
+      "source": "./plugins/backend",
+      "description": "Language-agnostic backend engineering rules and traps (modular monolith, DDD, outbox/idempotency, multi-tenancy, rate limiting, caching, resilience, security, observability, migrations, testing, CI) as one skill with 17 references."
+    }
+  ]
+}
