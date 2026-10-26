@@ -9,10 +9,10 @@ Capture what THIS session actually taught (the *why* behind decisions), keep onl
 ## Steps
 
 1. **Locate the skills repo (git-backed source, NOT the synced copy).**
-   - Resolve where `~/.config/opencode/skills/csharp` points (a junction/symlink from `node opencode/sync-skills.js --link`). The repo root is three levels above the `csharp` folder (`<repo>/plugins/dotnet/skills/csharp`).
+   - Resolve where `~/.config/opencode/skills/csharp` points (a junction/symlink from `node opencode/sync-skills.js --link`). The repo root is three levels above the `csharp` folder (`<repo>/skills/csharp/csharp`).
    - If it is a plain copy (no link), ask the user for the repo path. Never edit `~/.config/opencode/skills/**` as the source.
    - `git -C <repo-root> remote -v` and `git -C <repo-root> log --oneline -5` to confirm the repo and its commit style.
-   - Shared references live in `skills/csharp/references/`; the entry point and routing table is `skills/csharp/SKILL.md`; sibling skills are `skills/<name>/SKILL.md`.
+   - Shared references live in `skills/csharp/csharp/references/`; the entry point and routing table is `skills/csharp/csharp/SKILL.md`; sibling skills are `skills/csharp/csharp-<name>/SKILL.md`.
 
 2. **Gather this session's changes.** Review the diffs/edits made in the working project this session and recall the decisions behind them. Focus on reusable rules, not the mechanical edits or repo-specific names.
 
@@ -23,9 +23,9 @@ Capture what THIS session actually taught (the *why* behind decisions), keep onl
 5. **Present & ask: write NOTHING yet.** Show the surviving lessons as a numbered list. Ask which to add (all / a subset / edits) with the `question` tool, and stop until the user answers.
 
 6. **Add the approved bullets** to the best-fitting existing file, matching its tone/format:
-   - EF Core / query shaping / data access -> `skills/csharp/references/ef-core-data-access.md`
-   - C# idioms -> `skills/csharp/SKILL.md`; LINQ -> `references/linq.md`; perf -> `references/performance.md`; async -> `references/async-concurrency.md`; options/DI/library surface -> `references/composition.md`; root client + sub-clients -> `references/root-client.md`
-   - endpoints/handlers/mediator -> `web-api`; DTO/validation limits -> `validation`; security/resilience/caching -> `hardening`; telemetry -> `observability`; domain modeling -> `ddd`; tests -> `testing`.
+   - EF Core / query shaping / data access -> `skills/csharp/csharp/references/ef-core-data-access.md`
+   - C# idioms -> `skills/csharp/csharp/SKILL.md`; LINQ -> `references/linq.md`; perf -> `references/performance.md`; async -> `references/async-concurrency.md`; options/DI/library surface -> `references/composition.md`; root client + sub-clients -> `references/root-client.md`
+   - endpoints/handlers/mediator -> `csharp-web-api`; DTO/validation limits -> `csharp-validation`; security/resilience/caching -> `csharp-hardening`; telemetry -> `csharp-observability`; domain modeling -> `csharp-ddd`; tests -> `csharp-testing`.
    - Prefer appending to an existing section; add a new section only if none fits.
 
 7. **Validate, commit, push.**

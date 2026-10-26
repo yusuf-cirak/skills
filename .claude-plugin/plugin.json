@@ -1,0 +1,39 @@
+{
+  "name": "yusufcirak-skills",
+  "version": "0.1.0",
+  "description": "Yusuf Cirak's agent skills: C# / .NET / ASP.NET Core house style (csharp entry point plus csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, csharp-testing) and language-agnostic backend engineering rules (backend-engineering, 17 references).",
+  "author": {
+    "name": "Yusuf Cirak",
+    "email": "rewal34@gmail.com"
+  },
+  "repository": "https://github.com/yusuf-cirak/skills",
+  "keywords": [
+    "csharp",
+    "dotnet",
+    "aspnetcore",
+    "backend",
+    "ddd",
+    "modular-monolith",
+    "outbox",
+    "idempotency",
+    "multi-tenancy",
+    "rate-limiting",
+    "caching",
+    "resilience",
+    "security",
+    "observability",
+    "opentelemetry",
+    "testing",
+    "coding-standards"
+  ],
+  "skills": [
+    "./skills/csharp/csharp",
+    "./skills/csharp/csharp-ddd",
+    "./skills/csharp/csharp-web-api",
+    "./skills/csharp/csharp-validation",
+    "./skills/csharp/csharp-hardening",
+    "./skills/csharp/csharp-observability",
+    "./skills/csharp/csharp-testing",
+    "./skills/backend/backend-engineering"
+  ]
+}

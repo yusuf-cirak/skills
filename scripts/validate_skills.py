@@ -2,7 +2,7 @@
 """Check skills against Anthropic's skill best practices. Usage: python scripts/validate_skills.py"""
 import re, sys, pathlib
 
-root = pathlib.Path(__file__).resolve().parent.parent / "plugins" / "dotnet" / "skills"
+root = pathlib.Path(__file__).resolve().parent.parent / "skills" / "csharp"
 errs = []
 
 def read(p): return p.read_text(encoding="utf-8")

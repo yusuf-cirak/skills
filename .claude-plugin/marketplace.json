@@ -4,16 +4,20 @@
     "name": "Yusuf Cirak",
     "email": "rewal34@gmail.com"
   },
+  "description": "Yusuf Cirak's coding-standard skills (C# / .NET house style and language-agnostic backend engineering) as one installable Claude Code plugin.",
   "plugins": [
     {
-      "name": "dotnet",
-      "source": "./plugins/dotnet",
-      "description": "Personal C# / .NET / ASP.NET Core coding standards as an 8-skill family (csharp, ddd, web-api, validation, hardening, observability, testing) behind a router (index)."
-    },
-    {
-      "name": "backend",
-      "source": "./plugins/backend",
-      "description": "Language-agnostic backend engineering rules and traps (modular monolith, DDD, outbox/idempotency, multi-tenancy, rate limiting, caching, resilience, security, observability, migrations, testing, CI) as one skill with 17 references."
+      "name": "yusufcirak-skills",
+      "source": "./",
+      "description": "C# / .NET / ASP.NET Core house style (csharp entry point plus six sibling skills) and language-agnostic backend engineering rules with 17 references, with a SessionStart hook that routes by the detected project stack.",
+      "category": "engineering",
+      "keywords": [
+        "csharp",
+        "dotnet",
+        "backend",
+        "ddd",
+        "coding-standards"
+      ]
     }
   ]
 }

@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// Sync the dotnet skills, router plugin and commands into opencode's global config dir.
+// Sync the skills, router plugin and commands into opencode's global config dir.
 //
 //   node opencode/sync-skills.js          # copy (default, cross-platform safe)
 //   node opencode/sync-skills.js --link   # junction/symlink the skill folders (true single-source;
 //                                          # re-edits propagate). Plugin and command files are
 //                                          # always copied: file symlinks need elevation on Windows.
 //
-// Skills keep their folder names (csharp, ddd, web-api, validation, hardening, observability,
-// testing) so the relative cross-skill links (../csharp/references/...) keep resolving.
+// Every skill under skills/<bucket>/<skill>/ lands flat as ~/.config/opencode/skills/<skill>/,
+// keeping its folder name (csharp, csharp-ddd, ..., backend-engineering) so the relative
+// cross-skill links (../csharp/references/...) keep resolving.
 // Idempotent: re-running overwrites the destination.
 
 const fs = require("fs");
@@ -16,9 +17,9 @@ const path = require("path");
 
 const link = process.argv.includes("--link");
 
-// repo/plugins/dotnet/skills  (this file lives at repo/opencode/sync-skills.js)
+// repo/skills/<bucket>/<skill>  (this file lives at repo/opencode/sync-skills.js)
 const repoRoot = path.resolve(__dirname, "..");
-const srcRoot = path.join(repoRoot, "plugins", "dotnet", "skills");
+const srcRoot = path.join(repoRoot, "skills");
 const configDir = process.env.OPENCODE_CONFIG_DIR || path.join(os.homedir(), ".config", "opencode");
 const destRoot = path.join(configDir, "skills");
 
@@ -34,14 +35,21 @@ function copyDir(from, to) {
   fs.cpSync(from, to, { recursive: true });
 }
 
-const skills = fs
-  .readdirSync(srcRoot, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name);
+function subdirs(dir) {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => path.join(dir, d.name));
+}
+
+// bucket dirs -> skill dirs (a skill dir is one that holds a SKILL.md)
+const skills = subdirs(srcRoot)
+  .flatMap(subdirs)
+  .filter((d) => fs.existsSync(path.join(d, "SKILL.md")));
 
 let count = 0;
-for (const name of skills) {
-  const from = path.join(srcRoot, name);
+for (const from of skills) {
+  const name = path.basename(from);
   const to = path.join(destRoot, name);
   try {
     if (link) {
