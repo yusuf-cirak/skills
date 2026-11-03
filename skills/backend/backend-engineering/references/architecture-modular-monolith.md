@@ -4,11 +4,11 @@ metadata:
   sections:
     - {title: "1. When this applies", start: 17, end: 24}
     - {title: "2. Principles", start: 26, end: 36}
-    - {title: "3. Design", start: 38, end: 103}
-    - {title: "4. Traps", start: 105, end: 116}
-    - {title: "5. Invariants to test", start: 118, end: 125}
-    - {title: "6. Rationalizations / Red flags", start: 127, end: 136}
-    - {title: "7. Checklist", start: 138, end: 146}
+    - {title: "3. Design", start: 38, end: 142}
+    - {title: "4. Traps", start: 144, end: 158}
+    - {title: "5. Invariants to test", start: 160, end: 167}
+    - {title: "6. Rationalizations / Red flags", start: 169, end: 178}
+    - {title: "7. Checklist", start: 180, end: 191}
 ---
 # Architecture: Modular Monolith
 
@@ -102,8 +102,50 @@ The rule: a default is either harmless-and-visible or it throws. It never silent
 
 Lifetimes. Handlers and pipeline behaviors hold per-request resources (database context), so they are registered with request scope. A singleton behavior holding a scoped dependency is a captive dependency: it works in a one-request test and corrupts state under load.
 
+### Cross-module data access (choose per need)
+
+Never read another module's tables or database context. Four sanctioned routes, in order of preference:
+
+1. **Integration event + local copy.** Module B subscribes to A's event and keeps its own read-only copy of the fields it needs. Treat the copy as a cache: never write to it; send a command to A to change the source of truth. Best for reactive, performance-sensitive reads.
+2. **Contracts query, in-process.** A's contracts package declares `Query(id) -> Result<Response>` (record types); A's module-internal handler answers it; B sends it through the in-process mediator. B never references A's handler. Use for synchronous read-time needs.
+3. **Materialized view** owned by the reader, fed by events. Same rule as 1 for writes.
+4. **Cache decorator** over a hot read path (read-through), so caching stays out of the repository.
+
+Navigation properties across modules are forbidden; hold the other module's id and load separately. Sync HTTP between modules inside one deployable is wrong: use the in-process mediator and keep HTTP for a real extraction.
+
+### Visibility and boundary tooling (.NET)
+
+- Every type in a module's core project is `internal`. The only public type is the module registration class (`AddXModuleServices`-style); anything another module needs lives in the `.Contracts` project, never made public in the core project.
+- Compile-time guard: `NsDepCop` as a Roslyn analyzer, one `config.nsdepcop` per project folder (only that file name is read), enabled for any project that has one via `Directory.Build.props`. `Name.*` matches a namespace and its sub-namespaces. Allow-list only: `Allowed From="App.B.*" To="App.A.Contracts"`; no rule means forbidden.
+- Test-time guard: NetArchTest or ArchUnitNET asserting all module-core types are internal except the registrar.
+- Compiler-enforced `internal` beats the analyzer, the analyzer beats the arch test, the arch test beats review.
+
+### Per-module data isolation
+
+Each module owns its database context (internal), a schema name constant (`internal const string SchemaName = "Books"`), and its migrations folder. Storage technology may differ per module (SQL, document store, Redis); that is allowed, because the boundary is the contract, not the engine.
+
+### Two event tiers
+
+- **Domain event:** internal to the module, raised by the aggregate, dispatched after the save commits. Internal type.
+- **Integration event:** public record in the contracts package, published by a domain-event handler inside the originating module. Other modules handle it without referencing the originator. Flow: aggregate raises domain event -> save -> dispatcher publishes -> handler maps to integration event -> mediator delivers to other modules. For events that must not be lost, replace the in-process publish with the outbox (`outbox-inbox-messaging.md`).
+
+### Shared kernel scope
+
+Only: base classes (entity, value object, domain/integration event bases), marker interfaces (`IHaveDomainEvents`, domain-event dispatcher), and cross-cutting pipeline behaviors (logging, validation, telemetry). No business logic; framework abstractions only as dependencies. Publish as a package when several solutions share it.
+
+### Extraction path
+
+Because data, contracts and events are already separate, extracting a module is: (1) swap in-process mediator dispatch for HTTP or a broker at the contracts seam, (2) ship the contracts package to both sides, (3) move the module's schema to its own database. Extract only for a named operational reason (independent scaling, release cadence, team autonomy), never pre-emptively.
+
+### Scaffold a new module (checklist order)
+
+Core project (all internal) -> contracts project (events, DTOs, query records only) -> tests project -> internal database context + schema constant + migrations -> registrar (the one public type; adds its assembly to the mediator scan list) -> register in host -> boundary rule (NsDepCop or arch test) -> confirm no module references this core project. Template: `Ardalis.Modulith` (`dotnet new modulith`, `dotnet new modulith-module`) generates this shape.
+
 ## 4. Traps
 
+- **Public type made to "get around" the boundary.** A core type turned `public` so another module can use it silently kills the encapsulation and the compiler no longer guards it. Move it to contracts or expose a query instead.
+- **Shared database context or cross-module navigation property.** Couples schemas and makes extraction a rewrite. Keep ids only.
+- **Business logic in the host project.** The composition root becomes a god class. Host wires modules and nothing else.
 - **Unkeyed per-module registrations.** Two modules each register "the outbox writer" without a key; the last registration wins, a handler silently enqueues into the other module's context, the row is never saved, the broker never sees it and the inbox stays empty. It surfaced when the second producing module broke the end-to-end spine test. Register such services keyed by their database context and inject by key. Any "one per module" service needs the same treatment.
 - **Registry read before the container is built.** The module registry is consumed during setup; reading it before `addModules` has run returns nothing. Keep the order explicit and cover it with a boot test.
 - **Whole-program code generation lives in the outermost project.** A source generator or reflection scan that needs to see every handler can only run where all modules are visible (the host), not in a shared library. Test projects that build their own container need the generator installed locally.
@@ -139,6 +181,9 @@ Red flags in a diff: a module project reference to another module; business voca
 
 - [ ] New module references only shared blocks and its own contracts.
 - [ ] Contracts contain only events, DTOs and interfaces.
+- [ ] Core project types are internal; only the registrar is public.
+- [ ] Each module has its own database context, schema name and migrations.
+- [ ] Cross-module reads use an event-fed local copy or a contracts query, never another module's context.
 - [ ] Per-module services (writer, migrator, context) are keyed or otherwise unambiguous.
 - [ ] Port defaults are either harmless-and-visible or throw.
 - [ ] Module added to every external list (connector include list, topic list, probe list).
