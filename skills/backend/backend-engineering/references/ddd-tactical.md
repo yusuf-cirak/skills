@@ -2,17 +2,19 @@
 metadata:
   file: ddd-tactical.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 23}
-    - {title: "2. Principles", start: 25, end: 34}
-    - {title: "3. Design", start: 36, end: 133}
-    - {title: "4. Traps", start: 135, end: 142}
-    - {title: "5. Invariants to test", start: 144, end: 152}
-    - {title: "6. Rationalizations / Red flags", start: 154, end: 164}
-    - {title: "7. Checklist", start: 166, end: 174}
+    - {title: "1. When this applies", start: 19, end: 25}
+    - {title: "2. Principles", start: 27, end: 36}
+    - {title: "3. Design", start: 38, end: 135}
+    - {title: "4. Traps", start: 137, end: 144}
+    - {title: "5. Invariants to test", start: 146, end: 154}
+    - {title: "6. Rationalizations / Red flags", start: 156, end: 166}
+    - {title: "7. Checklist", start: 168, end: 176}
 ---
 # Domain Modeling: Tactical DDD
 
 > **Golden path:** Build aggregates only through factories that return success-or-error, give every aggregate its own id type, keep cross-cutting ports out of the domain layer, and raise events inside the aggregate.
+
+> **Also open:** `persistence-migrations.md` (load-modify-save, tracking, transactions); `idempotency-locking-concurrency.md` (two writers on one aggregate: lost updates, version column); `outbox-inbox-messaging.md` (integration events from domain events); `error-model.md` (factories return success-or-error).
 
 ## 1. When this applies
 

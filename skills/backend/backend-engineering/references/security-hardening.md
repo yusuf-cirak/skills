@@ -2,17 +2,19 @@
 metadata:
   file: security-hardening.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 22}
-    - {title: "2. Principles", start: 24, end: 32}
-    - {title: "3. Design", start: 34, end: 112}
-    - {title: "4. Traps", start: 114, end: 128}
-    - {title: "5. Invariants to test", start: 130, end: 139}
-    - {title: "6. Rationalizations / Red flags", start: 141, end: 151}
-    - {title: "7. Checklist", start: 153, end: 167}
+    - {title: "1. When this applies", start: 19, end: 24}
+    - {title: "2. Principles", start: 26, end: 34}
+    - {title: "3. Design", start: 36, end: 114}
+    - {title: "4. Traps", start: 116, end: 130}
+    - {title: "5. Invariants to test", start: 132, end: 141}
+    - {title: "6. Rationalizations / Red flags", start: 143, end: 153}
+    - {title: "7. Checklist", start: 155, end: 169}
 ---
 # Security Hardening
 
 > **Golden path:** Deny by default, validate issuer, audience, lifetime and signature with tight skew, keep a revocation path, trust proxy headers only from known proxies, and mask logs by key name.
+
+> **Also open:** `untrusted-input-outbound.md` (caller-chosen URLs, files, SQL fragments); `rate-limiting-load-shedding.md` (lockout needs a per-IP limit); `multi-tenancy.md` (tenant from a trusted source); `observability.md` (mask logs by key name); `api-surface.md` (pipeline order).
 
 ## 1. When this applies
 

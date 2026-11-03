@@ -2,17 +2,19 @@
 metadata:
   file: cqrs-use-case-pipeline.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 22}
-    - {title: "2. Principles", start: 24, end: 32}
-    - {title: "3. Design", start: 34, end: 94}
-    - {title: "4. Traps", start: 96, end: 104}
-    - {title: "5. Invariants to test", start: 106, end: 113}
-    - {title: "6. Rationalizations / Red flags", start: 115, end: 125}
-    - {title: "7. Checklist", start: 127, end: 135}
+    - {title: "1. When this applies", start: 19, end: 24}
+    - {title: "2. Principles", start: 26, end: 34}
+    - {title: "3. Design", start: 36, end: 96}
+    - {title: "4. Traps", start: 98, end: 106}
+    - {title: "5. Invariants to test", start: 108, end: 115}
+    - {title: "6. Rationalizations / Red flags", start: 117, end: 127}
+    - {title: "7. Checklist", start: 129, end: 137}
 ---
 # CQRS and the Use-Case Pipeline
 
 > **Golden path:** One request, one handler; cross-cutting checks are pipeline steps opted into by marker; declare the step order in one place and test it.
+
+> **Also open:** `error-model.md` (Result values mapped to the wire format); `idempotency-locking-concurrency.md` (duplicate or concurrent commands: idempotency and lock steps); `observability.md` (logging and telemetry behaviors, correlation ids); `outbox-inbox-messaging.md` (handlers enqueue events, never publish to a broker); `security-hardening.md` (authn/authz pipeline step).
 
 ## 1. When this applies
 

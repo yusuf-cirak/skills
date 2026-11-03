@@ -2,17 +2,19 @@
 metadata:
   file: observability.md
   sections:
-    - {title: "1. When this applies", start: 19, end: 24}
-    - {title: "2. Principles", start: 26, end: 35}
-    - {title: "3. Design", start: 37, end: 114}
-    - {title: "4. Traps", start: 116, end: 130}
-    - {title: "5. Invariants to test", start: 132, end: 139}
-    - {title: "6. Rationalizations / Red flags", start: 141, end: 151}
-    - {title: "7. Checklist", start: 153, end: 164}
+    - {title: "1. When this applies", start: 21, end: 26}
+    - {title: "2. Principles", start: 28, end: 37}
+    - {title: "3. Design", start: 39, end: 116}
+    - {title: "4. Traps", start: 118, end: 132}
+    - {title: "5. Invariants to test", start: 134, end: 141}
+    - {title: "6. Rationalizations / Red flags", start: 143, end: 153}
+    - {title: "7. Checklist", start: 155, end: 166}
 ---
 # Observability
 
 > **Golden path:** One resource identity across traces, metrics and logs; correlation and causation ids carried in ambient context across every hop; masking applied in the log pipeline.
+
+> **Also open:** `security-hardening.md` (mask PII and secrets in logs); `resilience-lifecycle.md` (probe definitions, fail-open metrics); `error-model.md` (what to log versus return); `rate-limiting-load-shedding.md` (limiter and shed metrics).
 
 Language specifics (OpenTelemetry SDK wiring, processor APIs) live in language skills; the `yusufcirak-skills:csharp-observability` skill exists for the .NET realization of everything below. This file owns the decisions and failure modes that hold in any language.
 

@@ -2,17 +2,19 @@
 metadata:
   file: build-ci-performance.md
   sections:
-    - {title: "1. When this applies", start: 19, end: 25}
-    - {title: "2. Principles", start: 27, end: 35}
-    - {title: "3. Design", start: 37, end: 114}
-    - {title: "4. Traps", start: 116, end: 124}
-    - {title: "5. Invariants to test", start: 126, end: 131}
-    - {title: "6. Rationalizations / Red flags", start: 133, end: 142}
-    - {title: "7. Checklist", start: 144, end: 154}
+    - {title: "1. When this applies", start: 21, end: 27}
+    - {title: "2. Principles", start: 29, end: 37}
+    - {title: "3. Design", start: 39, end: 116}
+    - {title: "4. Traps", start: 118, end: 126}
+    - {title: "5. Invariants to test", start: 128, end: 133}
+    - {title: "6. Rationalizations / Red flags", start: 135, end: 144}
+    - {title: "7. Checklist", start: 146, end: 156}
 ---
 # Build, CI and Performance
 
 > **Golden path:** Warnings fail the build with an explicit exception list, versions are pinned in one place, and performance work starts with a measurement and removes round trips before allocations.
+
+> **Also open:** `testing-strategy.md` (which test tiers CI runs); `persistence-migrations.md` (indexes, rolling-deploy migrations); `caching.md` (stampede and latency work); `rate-limiting-load-shedding.md` (limiter cost on the hot path).
 
 Language skills own tooling syntax (`yusufcirak-skills:csharp` references `build-and-analyzers` and `performance` for the .NET forms). This file owns the policy decisions and the method.
 

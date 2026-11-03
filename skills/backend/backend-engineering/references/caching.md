@@ -2,17 +2,19 @@
 metadata:
   file: caching.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 24}
-    - {title: "2. Principles", start: 26, end: 33}
-    - {title: "3. Design", start: 35, end: 95}
-    - {title: "4. Traps", start: 97, end: 107}
-    - {title: "5. Invariants to test", start: 109, end: 115}
-    - {title: "6. Rationalizations / Red flags", start: 117, end: 127}
-    - {title: "7. Checklist", start: 129, end: 137}
+    - {title: "1. When this applies", start: 19, end: 26}
+    - {title: "2. Principles", start: 28, end: 35}
+    - {title: "3. Design", start: 37, end: 97}
+    - {title: "4. Traps", start: 99, end: 109}
+    - {title: "5. Invariants to test", start: 111, end: 117}
+    - {title: "6. Rationalizations / Red flags", start: 119, end: 129}
+    - {title: "7. Checklist", start: 131, end: 139}
 ---
 # Caching
 
 > **Golden path:** Use a two-level cache with single-flight, stale-while-revalidate and cross-node invalidation from a library; never cache counters or freshness-critical decisions.
+
+> **Also open:** `idempotency-locking-concurrency.md` (idempotency state is stored, never cached); `rate-limiting-load-shedding.md` (counters never go through the cache); `resilience-lifecycle.md` (cache outage: fail-open or fail-closed); `observability.md` (hit/miss metrics, stale-serve visibility).
 
 ## 1. When this applies
 

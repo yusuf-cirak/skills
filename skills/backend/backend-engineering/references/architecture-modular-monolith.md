@@ -2,17 +2,19 @@
 metadata:
   file: architecture-modular-monolith.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 24}
-    - {title: "2. Principles", start: 26, end: 36}
-    - {title: "3. Design", start: 38, end: 142}
-    - {title: "4. Traps", start: 144, end: 158}
-    - {title: "5. Invariants to test", start: 160, end: 167}
-    - {title: "6. Rationalizations / Red flags", start: 169, end: 178}
-    - {title: "7. Checklist", start: 180, end: 191}
+    - {title: "1. When this applies", start: 19, end: 26}
+    - {title: "2. Principles", start: 28, end: 38}
+    - {title: "3. Design", start: 40, end: 144}
+    - {title: "4. Traps", start: 146, end: 160}
+    - {title: "5. Invariants to test", start: 162, end: 169}
+    - {title: "6. Rationalizations / Red flags", start: 171, end: 180}
+    - {title: "7. Checklist", start: 182, end: 193}
 ---
 # Architecture: Modular Monolith
 
 > **Golden path:** One deployable; modules own their data and talk only through a published contracts package and events; enforce the dependency direction with an executable rule.
+
+> **Also open:** `outbox-inbox-messaging.md` (a module publishes or consumes events: never dual-write, deliver at-least-once); `idempotency-locking-concurrency.md` (consumers run twice and handlers race on the same row or local copy: dedupe and version); `persistence-migrations.md` (per-module schema, migrations, tracking defaults); `observability.md` (every handler and consumer needs logs, traces and correlation ids); `ddd-tactical.md` (where aggregates, ports and domain events live); `testing-strategy.md` (boundary, boot and spine tests).
 
 ## 1. When this applies
 

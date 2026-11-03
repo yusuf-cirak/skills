@@ -2,17 +2,19 @@
 metadata:
   file: multi-tenancy.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 24}
-    - {title: "2. Principles", start: 26, end: 33}
-    - {title: "3. Design", start: 35, end: 95}
-    - {title: "4. Traps", start: 97, end: 111}
-    - {title: "5. Invariants to test", start: 113, end: 122}
-    - {title: "6. Rationalizations / Red flags", start: 124, end: 135}
-    - {title: "7. Checklist", start: 137, end: 147}
+    - {title: "1. When this applies", start: 19, end: 26}
+    - {title: "2. Principles", start: 28, end: 35}
+    - {title: "3. Design", start: 37, end: 97}
+    - {title: "4. Traps", start: 99, end: 113}
+    - {title: "5. Invariants to test", start: 115, end: 124}
+    - {title: "6. Rationalizations / Red flags", start: 126, end: 137}
+    - {title: "7. Checklist", start: 139, end: 149}
 ---
 # Multi-Tenancy (Row-Based)
 
 > **Golden path:** Apply the tenant predicate automatically on reads, enforce it fail-closed on every write path, resolve the tenant from a trusted source, and keep the bypass explicit and greppable.
+
+> **Also open:** `persistence-migrations.md` (query filters, interceptors, no-tracking pitfalls); `security-hardening.md` (tenant from the token, not the body); `idempotency-locking-concurrency.md` (keys and locks must include the tenant); `testing-strategy.md` (cross-tenant leak tests).
 
 ## 1. When this applies
 

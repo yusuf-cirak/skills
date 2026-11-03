@@ -2,19 +2,21 @@
 metadata:
   file: untrusted-input-outbound.md
   sections:
-    - {title: "1. When this applies", start: 19, end: 24}
-    - {title: "2. Principles", start: 26, end: 32}
-    - {title: "3. Design", start: 34, end: 80}
-    - {title: "4. Traps", start: 82, end: 91}
-    - {title: "5. Invariants to test", start: 93, end: 100}
-    - {title: "6. Rationalizations / Red flags", start: 102, end: 111}
-    - {title: "7. Checklist", start: 113, end: 120}
+    - {title: "1. When this applies", start: 21, end: 26}
+    - {title: "2. Principles", start: 28, end: 34}
+    - {title: "3. Design", start: 36, end: 82}
+    - {title: "4. Traps", start: 84, end: 93}
+    - {title: "5. Invariants to test", start: 95, end: 102}
+    - {title: "6. Rationalizations / Red flags", start: 104, end: 113}
+    - {title: "7. Checklist", start: 115, end: 122}
 ---
 # Untrusted Input and Outbound Calls
 
 > **Golden path:** Treat attacker-influenced data as data: parameterise queries, guard every caller-chosen outbound URL against internal ranges, validate uploads by content, and isolate untrusted text in prompts.
 
 > Provenance: unlike the other references, this one is **not** distilled from the reference system's code. It is general backend-security practice, carried over from the owner's `yusufcirak-skills:csharp-hardening` skill and made language-agnostic. Treat each rule as a standard to apply, not as a proven pattern from the reference system. Headers, CORS, auth, PII logging and body limits live in `security-hardening.md`; this file covers what happens to data an attacker can influence and to calls the server makes on someone's behalf.
+
+> **Also open:** `security-hardening.md` (authn, headers, proxies); `resilience-lifecycle.md` (timeouts and retries around outbound calls); `caching.md` (never cache authenticated responses by URL alone); `observability.md` (no PII or secrets in logs).
 
 ## 1. When this applies
 

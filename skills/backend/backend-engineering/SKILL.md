@@ -14,11 +14,12 @@ metadata:
   version: "1.1.0"
   category: Backend Engineering
   sections:
-    - {title: "How to use", start: 28, end: 33}
-    - {title: "Signal table", start: 35, end: 55}
-    - {title: "Cross-cutting rules", start: 57, end: 70}
-    - {title: "Relationship to other skills", start: 72, end: 75}
-    - {title: "Reference file contract", start: 77, end: 87}
+    - {title: "How to use", start: 29, end: 35}
+    - {title: "Signal table", start: 37, end: 59}
+    - {title: "Gate questions", start: 61, end: 72}
+    - {title: "Cross-cutting rules", start: 74, end: 87}
+    - {title: "Relationship to other skills", start: 89, end: 92}
+    - {title: "Reference file contract", start: 94, end: 104}
 ---
 
 # Backend Engineering
@@ -28,31 +29,47 @@ Hard-won rules distilled from a production-grade modular monolith (outbox + CDC 
 ## How to use
 
 1. Find the signals in the work below. Open **every** reference whose signal matches, not just the closest one. Most real tasks touch three or four.
-2. Apply the **Principle**, check the **Traps**, and write the **Invariant test** with the change, not after.
-3. Where a reference marks something `[known gap]` or `[proposed]`, it is not shipped behavior of the reference system. Do not present it as a proven pattern.
-4. Every file starts with front matter whose `metadata.sections` lists each `##` heading with its `start` and `end` line (1-based, inclusive, counted from the first line of the file). Read the first ~30 lines of a reference to get that index and its **Golden path** line, then load only the sections you need with an offset/limit read instead of the whole file.
+2. Answer the **Gate questions** below for every new handler, endpoint, consumer, job or module, and open the reference each "yes" points to. Each reference also ends its header with an **Also open** line: follow it, it lists the neighbors that the same change usually touches.
+3. Apply the **Principle**, check the **Traps**, and write the **Invariant test** with the change, not after.
+4. Where a reference marks something `[known gap]` or `[proposed]`, it is not shipped behavior of the reference system. Do not present it as a proven pattern.
+5. Every file starts with front matter whose `metadata.sections` lists each `##` heading with its `start` and `end` line (1-based, inclusive, counted from the first line of the file). Read the first ~30 lines of a reference to get that index and its **Golden path** line, then load only the sections you need with an offset/limit read instead of the whole file.
 
 ## Signal table
 
-| If the work involves... | Open |
-|---|---|
-| Splitting a system into modules, who may depend on whom, module registration, cross-module calls | `references/architecture-modular-monolith.md` |
-| Aggregates, entities, value objects, typed ids, domain events, domain state, where a port lives | `references/ddd-tactical.md` |
-| Use-case structure, handler pipeline, behaviors and their order, thin transport layer | `references/cqrs-use-case-pipeline.md` |
-| Error values vs exceptions, validation results, wire error format | `references/error-model.md` |
-| Publishing events reliably, outbox, CDC/relay, consumers, message identity | `references/outbox-inbox-messaging.md` |
-| Retries, idempotency keys, locks, lost updates, concurrent duplicates | `references/idempotency-locking-concurrency.md` |
-| ORM/DB conventions, tracking, transactions, migrations on rolling deploy, pagination | `references/persistence-migrations.md` |
-| Per-tenant data, tenant resolution, isolation bugs | `references/multi-tenancy.md` |
-| Throttling, abuse protection, overload, 429/503 | `references/rate-limiting-load-shedding.md` |
-| Any cache, stale data, stampedes | `references/caching.md` |
-| Timeouts, shutdown, health probes, bounded resources | `references/resilience-lifecycle.md` |
-| Authn/authz, tokens, headers, CORS, proxies, PII in logs | `references/security-hardening.md` |
-| User-supplied URLs/files/XML/SQL fragments, outbound calls to caller-chosen hosts, caching authenticated responses, untrusted text sent to an LLM (general practice, not repo-derived) | `references/untrusted-input-outbound.md` |
-| Logs, metrics, traces, correlation ids, health | `references/observability.md` |
-| Test tiers, integration tests with real infra, flaky/shared state | `references/testing-strategy.md` |
-| Warnings policy, dependency pinning, CI gates, perf work, ADRs | `references/build-ci-performance.md` |
-| Versioning, pagination contract, feature flags, route-level opt-ins | `references/api-surface.md` |
+Match on the work or on the symptom, not only on the topic name. Open every row that matches; the last column lists what usually comes with it.
+
+| If the work involves... (or the report says...) | Open | Usually also |
+|---|---|---|
+| Splitting into modules, who may depend on whom, module registration, a module reading another module's data, new module scaffold, extracting a service | `references/architecture-modular-monolith.md` | outbox, idempotency, persistence, observability |
+| Aggregates, entities, value objects, typed ids, domain events, factories, where a port lives | `references/ddd-tactical.md` | persistence, idempotency |
+| New handler/use case, pipeline behaviors and order, thin controller/endpoint | `references/cqrs-use-case-pipeline.md` | error-model, observability, idempotency |
+| Error values vs exceptions, validation results, wire error format, what to return vs log | `references/error-model.md` | api-surface, observability |
+| Publishing an event, outbox, CDC/relay, event consumer, message id, "event lost", "event delivered twice" | `references/outbox-inbox-messaging.md` | idempotency, persistence, observability |
+| Race condition, two requests at once, check-then-insert, read-modify-write, counters, "sometimes duplicate", double submit, retry, at-least-once consumer, lost update, background job overlap, distributed lock | `references/idempotency-locking-concurrency.md` | persistence (version column), outbox, resilience |
+| ORM/DB conventions, tracking, transactions, migrations on rolling deploy, pagination, soft delete | `references/persistence-migrations.md` | idempotency, multi-tenancy |
+| Per-tenant data, tenant resolution, cross-tenant leak | `references/multi-tenancy.md` | persistence, security |
+| Throttling, abuse protection, overload, 429/503 | `references/rate-limiting-load-shedding.md` | caching, resilience |
+| Any cache, stale data, stampede, cache invalidation | `references/caching.md` | resilience, rate-limiting |
+| Timeouts, shutdown, health probes, bounded resources, dependency down, fail-open/closed | `references/resilience-lifecycle.md` | observability, error-model |
+| Authn/authz, tokens, headers, CORS, proxies, PII or secrets in logs | `references/security-hardening.md` | untrusted-input, observability |
+| User-supplied URLs/files/XML/SQL fragments, outbound calls to caller-chosen hosts, caching authenticated responses, untrusted text sent to an LLM (general practice, not repo-derived) | `references/untrusted-input-outbound.md` | security, resilience |
+| Logging, log levels, structured logs, metrics, traces, correlation/causation ids, "add logging", alerts, health | `references/observability.md` | security (masking), error-model |
+| Test tiers, integration tests with real infra, flaky/shared state, concurrency tests, architecture tests | `references/testing-strategy.md` | the reference under test |
+| Warnings policy, dependency pinning, CI gates, perf work, ADRs | `references/build-ci-performance.md` | testing |
+| Versioning, pagination contract, feature flags, route-level opt-ins, middleware order | `references/api-surface.md` | error-model, security |
+
+## Gate questions
+
+Ask these for every new handler, endpoint, event consumer, background job or module. A "yes" is not a reason to skip the reference; it is the reason to open it.
+
+1. Can two calls touch the same row, key or counter at the same time, or can the same message arrive twice (retry, at-least-once, double click)? Open `idempotency-locking-concurrency.md`. Name the guard: idempotency key, unique marker, version column, or lock.
+2. Does it change state and announce it (event, email, webhook)? Open `outbox-inbox-messaging.md`. Never write and publish separately.
+3. When this fails or is slow at 3 a.m., what will the on-call see? Open `observability.md`: structured log with the correlation id at the decision points, a metric for the failure path, a span across the hop. No secrets or PII in the log.
+4. Which failures are expected values and which are bugs? Open `error-model.md`.
+5. Does it cross a module or tenant boundary? Open `architecture-modular-monolith.md` and `multi-tenancy.md`.
+6. Does it call out, wait on or depend on something that can be down? Open `resilience-lifecycle.md`: timeout, bounded work, fail-open or fail-closed written down.
+7. Who may call it and what does it accept from the caller? Open `security-hardening.md`, and `untrusted-input-outbound.md` for URLs, files and fragments.
+8. Which test proves the guard from questions 1-7? Open `testing-strategy.md`.
 
 ## Cross-cutting rules
 
@@ -76,7 +93,7 @@ These recur in every reference. If a design violates one, stop and justify it in
 
 ## Reference file contract
 
-Every file in `references/` follows the same shape so it can be scanned quickly. It opens with front matter (`metadata.file` and `metadata.sections` with `start`/`end` lines, generated, do not hand-edit line numbers), then the H1, then a one-sentence `> **Golden path:**` recommendation. Headings are numbered `## 1.` to `## 7.` in this order:
+Every file in `references/` follows the same shape so it can be scanned quickly. It opens with front matter (`metadata.file` and `metadata.sections` with `start`/`end` lines, generated, do not hand-edit line numbers), then the H1, then a one-sentence `> **Golden path:**` recommendation, then a `> **Also open:**` line naming the neighbor references the same change usually touches, each with the reason (when you add a reference, link it from at least one neighbor and from the signal table). Headings are numbered `## 1.` to `## 7.` in this order:
 
 1. **When this applies** (2-4 bullets)
 2. **Principles** (language-agnostic, 1-2 sentences each)

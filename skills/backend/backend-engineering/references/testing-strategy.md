@@ -2,17 +2,19 @@
 metadata:
   file: testing-strategy.md
   sections:
-    - {title: "1. When this applies", start: 19, end: 24}
-    - {title: "2. Principles", start: 26, end: 34}
-    - {title: "3. Design", start: 36, end: 101}
-    - {title: "4. Traps", start: 103, end: 113}
-    - {title: "5. Invariants to test", start: 115, end: 121}
-    - {title: "6. Rationalizations / Red flags", start: 123, end: 133}
-    - {title: "7. Checklist", start: 135, end: 145}
+    - {title: "1. When this applies", start: 21, end: 26}
+    - {title: "2. Principles", start: 28, end: 36}
+    - {title: "3. Design", start: 38, end: 103}
+    - {title: "4. Traps", start: 105, end: 115}
+    - {title: "5. Invariants to test", start: 117, end: 123}
+    - {title: "6. Rationalizations / Red flags", start: 125, end: 135}
+    - {title: "7. Checklist", start: 137, end: 147}
 ---
 # Testing Strategy
 
 > **Golden path:** Unit tests for logic, executable architecture rules for dependency direction, and a few integration tests against real infrastructure for what fakes cannot prove.
+
+> **Also open:** `architecture-modular-monolith.md` (boundary and boot tests); `outbox-inbox-messaging.md` (runtime spine test); `idempotency-locking-concurrency.md` (parallel-duplicate and race tests); `build-ci-performance.md` (CI gates).
 
 Language skills own framework and assertion-library choices (`yusufcirak-skills:csharp-testing` for .NET). This file owns what each tier must prove and the isolation traps that make suites lie.
 

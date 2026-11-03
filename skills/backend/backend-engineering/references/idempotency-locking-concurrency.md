@@ -2,17 +2,19 @@
 metadata:
   file: idempotency-locking-concurrency.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 26}
-    - {title: "2. Principles", start: 28, end: 35}
-    - {title: "3. Design", start: 37, end: 95}
-    - {title: "4. Traps", start: 97, end: 109}
-    - {title: "5. Invariants to test", start: 111, end: 122}
-    - {title: "6. Rationalizations / Red flags", start: 124, end: 135}
-    - {title: "7. Checklist", start: 137, end: 146}
+    - {title: "1. When this applies", start: 19, end: 28}
+    - {title: "2. Principles", start: 30, end: 37}
+    - {title: "3. Design", start: 39, end: 97}
+    - {title: "4. Traps", start: 99, end: 111}
+    - {title: "5. Invariants to test", start: 113, end: 124}
+    - {title: "6. Rationalizations / Red flags", start: 126, end: 137}
+    - {title: "7. Checklist", start: 139, end: 148}
 ---
 # Idempotency, Locking and Concurrency
 
 > **Golden path:** Scope idempotency keys by caller and tenant, claim them atomically, use a renewing non-blocking lock only for genuinely-once work, and detect lost updates with a database-maintained version.
+
+> **Also open:** `outbox-inbox-messaging.md` (consumer dedupe marker, at-least-once delivery); `persistence-migrations.md` (version column, tracking, transactions); `resilience-lifecycle.md` (lock or store outage: fail-open/closed); `observability.md` (log and meter replays, contention, lock timeouts); `caching.md` (never cache idempotency state).
 
 ## 1. When this applies
 

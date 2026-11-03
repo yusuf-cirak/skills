@@ -2,17 +2,19 @@
 metadata:
   file: api-surface.md
   sections:
-    - {title: "1. When this applies", start: 19, end: 24}
-    - {title: "2. Principles", start: 26, end: 32}
-    - {title: "3. Design", start: 34, end: 103}
-    - {title: "4. Traps", start: 105, end: 114}
-    - {title: "5. Invariants to test", start: 116, end: 122}
-    - {title: "6. Rationalizations / Red flags", start: 124, end: 133}
-    - {title: "7. Checklist", start: 135, end: 142}
+    - {title: "1. When this applies", start: 21, end: 26}
+    - {title: "2. Principles", start: 28, end: 34}
+    - {title: "3. Design", start: 36, end: 105}
+    - {title: "4. Traps", start: 107, end: 116}
+    - {title: "5. Invariants to test", start: 118, end: 124}
+    - {title: "6. Rationalizations / Red flags", start: 126, end: 135}
+    - {title: "7. Checklist", start: 137, end: 144}
 ---
 # API Surface
 
 > **Golden path:** Declare cross-cutting policy on the route, version from day one, clamp pagination at the boundary, and keep one documented middleware order.
+
+> **Also open:** `error-model.md` (one error shape and status mapping); `security-hardening.md` (CORS, headers, middleware order constraints); `rate-limiting-load-shedding.md` (429/503 behavior, limiter placement); `caching.md` (output cache, authenticated responses).
 
 Extends the installed `api-and-interface-design` skill (Hyrum's Law, contract first, one error shape, additive change, idempotency-key contract). Read that first; this file does not repeat it. Error mapping details are in `error-model.md`.
 

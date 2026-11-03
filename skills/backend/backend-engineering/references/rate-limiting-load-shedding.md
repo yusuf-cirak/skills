@@ -2,17 +2,19 @@
 metadata:
   file: rate-limiting-load-shedding.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 22}
-    - {title: "2. Principles", start: 24, end: 31}
-    - {title: "3. Design", start: 33, end: 111}
-    - {title: "4. Traps", start: 113, end: 125}
-    - {title: "5. Invariants to test", start: 127, end: 133}
-    - {title: "6. Rationalizations / Red flags", start: 135, end: 145}
-    - {title: "7. Checklist", start: 147, end: 157}
+    - {title: "1. When this applies", start: 19, end: 24}
+    - {title: "2. Principles", start: 26, end: 33}
+    - {title: "3. Design", start: 35, end: 113}
+    - {title: "4. Traps", start: 115, end: 127}
+    - {title: "5. Invariants to test", start: 129, end: 135}
+    - {title: "6. Rationalizations / Red flags", start: 137, end: 147}
+    - {title: "7. Checklist", start: 149, end: 159}
 ---
 # Rate Limiting and Load Shedding
 
 > **Golden path:** Key limits on the authenticated principal or server-observed IP plus the matched route template, count in one authoritative store, shield it with an equal-cap local limiter, and fail open with a metric.
+
+> **Also open:** `caching.md` (policy overrides cached, counters never); `resilience-lifecycle.md` (limiter store outage: fail-open with a metric); `security-hardening.md` (forwarded headers, trusted proxies); `observability.md` (limiter and shed metrics).
 
 ## 1. When this applies
 

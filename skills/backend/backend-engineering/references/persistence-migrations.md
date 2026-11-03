@@ -2,17 +2,19 @@
 metadata:
   file: persistence-migrations.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 25}
-    - {title: "2. Principles", start: 27, end: 34}
-    - {title: "3. Design", start: 36, end: 133}
-    - {title: "4. Traps", start: 135, end: 149}
-    - {title: "5. Invariants to test", start: 151, end: 160}
-    - {title: "6. Rationalizations / Red flags", start: 162, end: 173}
-    - {title: "7. Checklist", start: 175, end: 184}
+    - {title: "1. When this applies", start: 19, end: 27}
+    - {title: "2. Principles", start: 29, end: 36}
+    - {title: "3. Design", start: 38, end: 135}
+    - {title: "4. Traps", start: 137, end: 151}
+    - {title: "5. Invariants to test", start: 153, end: 162}
+    - {title: "6. Rationalizations / Red flags", start: 164, end: 175}
+    - {title: "7. Checklist", start: 177, end: 186}
 ---
 # Persistence, Migrations and Pagination
 
 > **Golden path:** Derive names by convention, make writes explicit about tracking, migrate with expand/contract, clamp page size at the boundary, and prefer keyset paging at scale.
+
+> **Also open:** `idempotency-locking-concurrency.md` (lost updates, optimistic concurrency, retries); `multi-tenancy.md` (tenant filter and guard interceptors); `ddd-tactical.md` (aggregates and tracking); `outbox-inbox-messaging.md` (outbox rows in the same save); `resilience-lifecycle.md` (boot migrator and readiness probes).
 
 ## 1. When this applies
 

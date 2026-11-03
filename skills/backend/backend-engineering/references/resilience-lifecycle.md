@@ -2,17 +2,19 @@
 metadata:
   file: resilience-lifecycle.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 22}
-    - {title: "2. Principles", start: 24, end: 31}
-    - {title: "3. Design", start: 33, end: 118}
-    - {title: "4. Traps", start: 120, end: 133}
-    - {title: "5. Invariants to test", start: 135, end: 144}
-    - {title: "6. Rationalizations / Red flags", start: 146, end: 156}
-    - {title: "7. Checklist", start: 158, end: 167}
+    - {title: "1. When this applies", start: 19, end: 24}
+    - {title: "2. Principles", start: 26, end: 33}
+    - {title: "3. Design", start: 35, end: 120}
+    - {title: "4. Traps", start: 122, end: 135}
+    - {title: "5. Invariants to test", start: 137, end: 146}
+    - {title: "6. Rationalizations / Red flags", start: 148, end: 158}
+    - {title: "7. Checklist", start: 160, end: 169}
 ---
 # Resilience and Lifecycle
 
 > **Golden path:** Bound every client-controlled resource and every outbound call, split probes into startup/liveness/readiness, flip readiness at SIGTERM, and keep a written fail-open/closed list.
+
+> **Also open:** `observability.md` (probes, fail-open metrics and alarms); `error-model.md` (dependency-unreachable failure values); `security-hardening.md` (fail-closed security paths); `untrusted-input-outbound.md` (outbound guards compose inside retries).
 
 ## 1. When this applies
 

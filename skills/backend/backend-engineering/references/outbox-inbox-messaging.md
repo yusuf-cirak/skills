@@ -2,17 +2,19 @@
 metadata:
   file: outbox-inbox-messaging.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 24}
-    - {title: "2. Principles", start: 26, end: 33}
-    - {title: "3. Design", start: 35, end: 111}
-    - {title: "4. Traps", start: 113, end: 129}
-    - {title: "5. Invariants to test", start: 131, end: 141}
-    - {title: "6. Rationalizations / Red flags", start: 143, end: 154}
-    - {title: "7. Checklist", start: 156, end: 165}
+    - {title: "1. When this applies", start: 19, end: 26}
+    - {title: "2. Principles", start: 28, end: 35}
+    - {title: "3. Design", start: 37, end: 113}
+    - {title: "4. Traps", start: 115, end: 131}
+    - {title: "5. Invariants to test", start: 133, end: 143}
+    - {title: "6. Rationalizations / Red flags", start: 145, end: 156}
+    - {title: "7. Checklist", start: 158, end: 167}
 ---
 # Outbox, Inbox and Messaging
 
 > **Golden path:** Write the event row in the same transaction as the state change, run exactly one relay, deliver at-least-once, and make every consumer idempotent with a unique (message id, consumer) marker.
+
+> **Also open:** `idempotency-locking-concurrency.md` (concurrent duplicate deliveries, consumer races); `persistence-migrations.md` (outbox table in the module schema, same transaction); `observability.md` (relay lag, correlation and causation ids, poison messages); `resilience-lifecycle.md` (relay shutdown, retries, bounded work); `architecture-modular-monolith.md` (one outbox and writer per module, keyed).
 
 ## 1. When this applies
 

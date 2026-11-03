@@ -2,17 +2,19 @@
 metadata:
   file: error-model.md
   sections:
-    - {title: "1. When this applies", start: 17, end: 24}
-    - {title: "2. Principles", start: 26, end: 35}
-    - {title: "3. Design", start: 37, end: 95}
-    - {title: "4. Traps", start: 97, end: 106}
-    - {title: "5. Invariants to test", start: 108, end: 117}
-    - {title: "6. Rationalizations / Red flags", start: 119, end: 129}
-    - {title: "7. Checklist", start: 131, end: 139}
+    - {title: "1. When this applies", start: 19, end: 26}
+    - {title: "2. Principles", start: 28, end: 37}
+    - {title: "3. Design", start: 39, end: 97}
+    - {title: "4. Traps", start: 99, end: 108}
+    - {title: "5. Invariants to test", start: 110, end: 119}
+    - {title: "6. Rationalizations / Red flags", start: 121, end: 131}
+    - {title: "7. Checklist", start: 133, end: 141}
 ---
 # Error Model
 
 > **Golden path:** Expected failures are values with code, message and status, mapped to the wire format in exactly one place; exceptions are for bugs and invariant violations.
+
+> **Also open:** `api-surface.md` (wire error shape, status codes); `cqrs-use-case-pipeline.md` (where validation and mapping run); `resilience-lifecycle.md` (dependency-unreachable failures: fail-open/closed list); `observability.md` (log unexpected exceptions once, with correlation id).
 
 ## 1. When this applies
 
