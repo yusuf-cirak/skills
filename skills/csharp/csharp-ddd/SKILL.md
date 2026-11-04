@@ -60,8 +60,8 @@ Default layout (the reference repo, TicketMaster):
   - `Presentation/BuildingBlocks.{Web,Security,RateLimiting,Observability,HealthChecks,Modularity}` — service defaults + idempotency + Result→HTTP mapper, JWT/scopes, rate limiting, OTel, health, `IModule`.
 - `src/Modules/<ModuleName>/` — **one project plus a Contracts project**, layers are folders, not projects:
   - `<Solution>.Modules.<ModuleName>/{Application,Domain,Infrastructure,Host,Migrations}` — commands/queries/handlers, aggregates, DbContext + repositories, endpoints + the `IModule` class, EF migrations.
-  - `<Solution>.Modules.<ModuleName>.Contracts` — integration events + public DTOs for cross-module use.
-- `src/Host/<Solution>.AppHost` — the only executable; registers modules by type and owns `AddMediator()` (the source generator runs only in the outermost project).
+  - `<Solution>.Modules.<ModuleName>.Contracts` — integration events, public DTOs and the request/response records (queries/commands) other modules send through the in-process mediator.
+- `src/Hosts/` — `<Solution>.Monolith` (composes the modules, the default deployable) plus a thin `<Module>.Api` standalone host per module, all on the same `BuildingBlocks` (auth and middleware live there once). Each host registers its modules by type, owns its own `AddMediator()` (the source generator runs only in the outermost project of that host) and applies only its modules' migrations. When a module host runs alone, a contract owned by another module needs a registered remote adapter; the full rules are in the `yusufcirak-skills:backend-engineering` skill (modular monolith reference).
 - `<Solution>.slnx` — solution file.
 
 Module registration is a named opt-in, no assembly scanning for modules:
@@ -75,7 +75,9 @@ builder.AddModules(m => m.Add<PlatformModule>().Add<IamModule>().Add<EventsModul
 api.MapModuleEndpoints(); // every module's MapEndpoints on the shared /api group
 ```
 
-If the existing project uses a different architecture, **follow that architecture** and record the deviation so it stays consistent across the session.
+Cross-module calls are `async` mediator requests over the contracts project (`Task<Result<T>>` plus `CancellationToken`, never `.Result` or `.Wait()`); no HTTP between modules of the same process unless a recorded reason adds an adapter behind the same contract.
+
+If the existing project uses a different architecture, **follow its structure** and record the deviation so it stays consistent across the session, without breaking the module seams: no reads of another feature's tables, depend on contracts or ids, keep the feature's data and handlers together. New project: ask the architecture questions first (see the backend reference "New project: ask first").
 
 ## Vertical Slice Architecture (inside Application)
 

@@ -2,13 +2,13 @@
 metadata:
   file: architecture-modular-monolith.md
   sections:
-    - {title: "1. When this applies", start: 19, end: 26}
-    - {title: "2. Principles", start: 28, end: 38}
-    - {title: "3. Design", start: 40, end: 144}
-    - {title: "4. Traps", start: 146, end: 160}
-    - {title: "5. Invariants to test", start: 162, end: 169}
-    - {title: "6. Rationalizations / Red flags", start: 171, end: 180}
-    - {title: "7. Checklist", start: 182, end: 193}
+    - {title: "1. When this applies", start: 19, end: 29}
+    - {title: "2. Principles", start: 31, end: 42}
+    - {title: "3. Design", start: 44, end: 191}
+    - {title: "4. Traps", start: 193, end: 211}
+    - {title: "5. Invariants to test", start: 213, end: 222}
+    - {title: "6. Rationalizations / Red flags", start: 224, end: 233}
+    - {title: "7. Checklist", start: 235, end: 249}
 ---
 # Architecture: Modular Monolith
 
@@ -22,20 +22,24 @@ metadata:
 - Adding a module, a shared building block, or a cross-module interaction.
 - Reviewing a diff where one module imports another, or where "shared" code is growing business words.
 - Wiring the composition root (what the host knows, what each module registers).
+- Starting a new project: ask the architecture questions first ("New project: ask first").
+- Writing new code inside an existing project that is not modular: keep the module seams anyway (Principle 9).
+- Making a module runnable on its own, or calling another module.
 
 Strategic DDD (bounded contexts, context maps, anti-corruption layers) is covered by the installed `architecture-patterns` skill; this file covers the structural rules around it and the failure modes found in practice. Related: shared capabilities a module opts into include the hybrid cache (`caching.md`); the full middleware order the host builds is in `api-surface.md`.
 
 ## 2. Principles
 
-1. **One deployable, many bounded contexts.** Each module is a vertical slice that owns its model, its schema, its migrations and its outbox. Splitting into services later should be a deployment change, not a rewrite.
+1. **One deployable by default, many bounded contexts.** Each module is a vertical slice that owns its model, its schema, its migrations and its outbox. Splitting into services later should be a deployment change, not a rewrite.
 2. **Shared code is product-neutral and layered.** Shared building blocks know nothing about tickets, orders or users. They are grouped by layer (domain core, application abstractions, infrastructure adapters, presentation/host concerns) and depend inward only.
-3. **The only cross-module surface is a contracts package.** It holds integration-event records, public DTOs and public interfaces, nothing else. No module references another module's non-contracts code.
-4. **Cross-module communication is asynchronous by default.** A module publishes an integration event through its own outbox in the same transaction as its state change; other modules consume it through an inbox. Synchronous calls go through a contracts interface, never through shared tables.
+3. **The only cross-module surface is a contracts package.** It holds integration-event records, public DTOs, public interfaces and the request/response records (queries and commands) that other modules send through the mediator, nothing else. No module references another module's non-contracts code.
+4. **Cross-module calls are async in signature and in-process by default.** A module asks another module by sending a contracts request through the in-process mediator; the call is non-blocking in the language's idiom (see "Async call shape per language"), and the caller never knows what runs behind the handler. A state change is announced as an integration event through the module's own outbox in the same transaction, and other modules consume it through an inbox. Never through shared tables, never over HTTP between modules of the same process.
 5. **Capabilities are opt-in.** A module gains caching, locking, messaging or rate limiting by adding a dependency and calling one registration helper with an options callback. Nothing is on by default, so a module cannot be surprised by behavior it did not ask for.
 6. **The host names modules by type and nothing else.** Each module registers its own services, consumers and endpoints. Framework-level wiring is one call per concern.
 7. **Reusable capability goes to the shared library; only module-specific policy stays in the module.** If a class would work unchanged in another module, it belongs in the shared layer. Module-specific helpers keep the module prefix even when they physically live in a shared project, so a generic-looking name never implies reuse that was not designed.
 8. **Fail-closed gates sit at the write boundary,** in the command that persists a setting, not deep inside the consumer that later reads it.
-9. **If the existing project uses a different architecture, follow it** and record the deviation (one decision record) so the session stays consistent.
+9. **If the existing project uses a different architecture, follow its structure and record the deviation** (one decision record) so the session stays consistent. Follow it without breaking the module seams: new code does not read another feature's tables, depends on an interface or contract plus ids, and keeps its own data and handlers together so it can be lifted into a module later. Never write new coupling because the old code is coupled.
+10. **Every module can run alone.** Each module has a thin API host (own entry point, own mediator registration, own migrations) on top of shared building blocks; the monolith host composes several modules. Which hosts are deployed is a deployment decision, not a code change.
 
 ## 3. Design
 
@@ -51,7 +55,9 @@ shared/
 modules/
   <module>/          domain/, application/, infrastructure/, host/ (folders; layering is convention inside a module)
   <module>.contracts integration events + public interfaces only
-host/                composition root: names modules, builds the pipeline
+hosts/
+  <module>.api       thin standalone host: shared presentation blocks + ONE module (own entry point, own mediator registration)
+  monolith           composition root composing several modules; the default deployable
 ```
 
 A module may be one project with folders or several projects; what matters is that the boundary tests below pass. Presentation may depend on infrastructure where a concern genuinely needs it (rate limiting on top of the cache); infrastructure never depends on presentation. [shipped]
@@ -92,6 +98,47 @@ How to enforce this outside the reference's language:
 
 Prefer mechanisms the compiler enforces (`internal/`, crate visibility) over linters, and linters over code review. Whatever the mechanism, it must fail the build.
 
+### Standalone hosts and the monolith host `[proposed]`
+
+```
+building-blocks/   shared infra for EVERY host: authentication, middleware pipeline, observability, health, result-to-HTTP mapping
+modules/orders/    orders + orders.contracts
+modules/payments/  payments + payments.contracts
+hosts/orders.api       = building-blocks + orders                (can run as its own process)
+hosts/payments.api     = building-blocks + payments
+hosts/monolith         = building-blocks + orders + payments + ... (default deployable)
+```
+
+- Auth and middleware live in the shared building blocks, once; no host copies them.
+- Each host owns its own mediator registration and applies only its modules' migrations.
+- When a host runs a module alone and that module sends a contract owned by another module, the other module's handler is not loaded: register a remote adapter for that contract (see "Extraction path"). A host that sends a contract with no handler fails at boot, not at the first request.
+- Having the thin host ready is cheap and is not premature extraction; moving data and adding remote adapters is the part that needs a reason.
+
+### Async call shape per language `[proposed]`
+
+"Async" here means non-blocking call signatures, not that a message queue sits in the middle.
+
+| Language | Shape of a cross-module contract call |
+|---|---|
+| C# | `Task<Result<T>> Send(request, CancellationToken)`; handlers are `async`; never `.Result` or `.Wait()` |
+| Rust | `async fn` handler (native async fn in traits or `async_trait`), cancellation passed through; never `block_on` inside a handler |
+| Go | plain `func(ctx context.Context, req Req) (Resp, error)` through an interface or registered function; do NOT spawn a goroutine or channel only to look async; use goroutines for real concurrency only |
+| TypeScript | `Promise<Result<T>>` |
+
+### New project: ask first `[proposed]`
+
+When the user starts a new project, ask these before laying out folders (skip any question the user already answered):
+
+1. Modular monolith, with modules that can later run alone?
+2. Which modules (bounded contexts), and which data does each own?
+3. Database: one server with a schema per module (default), or a separate database per module? Migrations are per module either way.
+4. Standalone API host per module from day one (thin, default yes) in addition to the monolith host?
+5. Cross-module calls: in-process mediator over contracts (default). Is any module already planned for a separate process, and why?
+6. Shared building blocks for auth, middleware, observability: confirm one set for every host.
+7. Mediator choice for the language (C# Mediator or MediatR; Go interface plus registration; Rust trait with async fn).
+
+If the project is not modular and will stay that way, skip the questions and apply Principle 9.
+
 Safe defaults for ports. Application registers a default for every port its behaviors need, using add-if-missing semantics, and the host overrides:
 
 ```
@@ -106,14 +153,14 @@ Lifetimes. Handlers and pipeline behaviors hold per-request resources (database 
 
 ### Cross-module data access (choose per need)
 
-Never read another module's tables or database context. Four sanctioned routes, in order of preference:
+Never read another module's tables or database context. Four sanctioned routes:
 
-1. **Integration event + local copy.** Module B subscribes to A's event and keeps its own read-only copy of the fields it needs. Treat the copy as a cache: never write to it; send a command to A to change the source of truth. Best for reactive, performance-sensitive reads.
-2. **Contracts query, in-process.** A's contracts package declares `Query(id) -> Result<Response>` (record types); A's module-internal handler answers it; B sends it through the in-process mediator. B never references A's handler. Use for synchronous read-time needs.
+1. **Contracts request through the mediator (default).** A's contracts package declares `Query(id) -> Result<Response>` (and commands the same way) as record types; A's module-internal handler answers; B sends it through the in-process mediator with an async call. B never references A's handler and never knows what is behind it (A's own code today, a remote adapter after extraction).
+2. **Integration event + local copy.** Module B subscribes to A's event and keeps its own read-only copy of the fields it needs. Treat the copy as a cache: never write to it; send a command to A to change the source of truth. Use for reactive or performance-sensitive reads where a call per request is too chatty.
 3. **Materialized view** owned by the reader, fed by events. Same rule as 1 for writes.
 4. **Cache decorator** over a hot read path (read-through), so caching stays out of the repository.
 
-Navigation properties across modules are forbidden; hold the other module's id and load separately. Sync HTTP between modules inside one deployable is wrong: use the in-process mediator and keep HTTP for a real extraction.
+Navigation properties across modules are forbidden; hold the other module's id and load separately. Do not call another module of the same process over HTTP: the contract plus its mediator handler exists for that. An HTTP, gRPC or broker adapter behind the same contract needs a stated reason, normally that the module now runs in another process (see "Extraction path"); record the reason. The callers do not change.
 
 ### Visibility and boundary tooling (.NET)
 
@@ -137,14 +184,18 @@ Only: base classes (entity, value object, domain/integration event bases), marke
 
 ### Extraction path
 
-Because data, contracts and events are already separate, extracting a module is: (1) swap in-process mediator dispatch for HTTP or a broker at the contracts seam, (2) ship the contracts package to both sides, (3) move the module's schema to its own database. Extract only for a named operational reason (independent scaling, release cadence, team autonomy), never pre-emptively.
+Because data, contracts and events are already separate and every module already has its thin API host, extracting a module is: (1) deploy that host alone, (2) on the calling side register a remote adapter (HTTP, gRPC or broker) as the handler for each contract the caller sends to it, so callers do not change, (3) ship the contracts package to both sides, (4) move the module's schema to its own database if needed. Do this only for a named operational reason (independent scaling, release cadence, team autonomy); the thin host being ready is not the premature part.
 
 ### Scaffold a new module (checklist order)
 
-Core project (all internal) -> contracts project (events, DTOs, query records only) -> tests project -> internal database context + schema constant + migrations -> registrar (the one public type; adds its assembly to the mediator scan list) -> register in host -> boundary rule (NsDepCop or arch test) -> confirm no module references this core project. Template: `Ardalis.Modulith` (`dotnet new modulith`, `dotnet new modulith-module`) generates this shape.
+Core project (all internal) -> contracts project (events, DTOs, request/response records only) -> thin API host for the module -> tests project -> internal database context + schema constant + migrations -> registrar (the one public type; adds its assembly to the mediator scan list) -> register in host -> boundary rule (NsDepCop or arch test) -> confirm no module references this core project. Template: `Ardalis.Modulith` (`dotnet new modulith`, `dotnet new modulith-module`) generates this shape.
 
 ## 4. Traps
 
+- **A per-module host that copies the infrastructure.** The standalone host re-implements authentication or middleware instead of using the shared building blocks, and the hosts drift. One shared set, every host references it.
+- **A standalone host with an unresolved contract.** The module runs alone, sends a contract owned by another module, and no handler is registered: it fails on the first request in production. Register the adapter and cover every host with a boot test.
+- **Fake async.** In Go, a goroutine and channel wrapped around an in-process call; in C#, `.Result` or `.Wait()` on the mediator; in Rust, `block_on` inside a handler. Use the idiom in "Async call shape per language".
+- **HTTP between modules of the same process** because "it is how microservices do it". It adds a network failure mode to a function call. HTTP behind a contract needs a recorded reason.
 - **Public type made to "get around" the boundary.** A core type turned `public` so another module can use it silently kills the encapsulation and the compiler no longer guards it. Move it to contracts or expose a query instead.
 - **Shared database context or cross-module navigation property.** Couples schemas and makes extraction a rewrite. Keep ids only.
 - **Business logic in the host project.** The composition root becomes a god class. Host wires modules and nothing else.
@@ -166,6 +217,8 @@ Core project (all internal) -> contracts project (events, DTOs, query records on
 - `[shipped]` Runtime spine test: write, outbox, broker, inbox, in one pass, against real infrastructure. It also boots the full host with every module registered, so an unregistered or mis-ordered module fails there.
 - `[proposed]` A dedicated, fast boot test (host with every module registered; startup succeeds; registry populated) that does not need containers. In the reference system only the container-backed spine fixture boots the host.
 - `[proposed]` A rule or grep test that no handler injects an unkeyed outbox writer. No such test exists in the reference system; the keyed-registration lesson is currently held by the spine test and by convention.
+- `[proposed]` Boot test per host: each host starts, and every contract request its modules can send resolves to a handler (in-process or a remote adapter). A module host starts without the other modules loaded.
+- `[proposed]` No module project references another host or another module's non-contracts code; no call to another module goes through an HTTP client unless an adapter is registered for that contract.
 - `[proposed]` Registered pipeline sequence equals the declared order (see `cqrs-use-case-pipeline.md`). Not present in the reference system.
 
 ## 6. Rationalizations / Red flags
@@ -182,7 +235,10 @@ Red flags in a diff: a module project reference to another module; business voca
 ## 7. Checklist
 
 - [ ] New module references only shared blocks and its own contracts.
-- [ ] Contracts contain only events, DTOs and interfaces.
+- [ ] Contracts contain only events, DTOs, interfaces and request/response records.
+- [ ] The module has a thin API host on the shared building blocks; hosts do not copy auth or middleware.
+- [ ] Cross-module calls are async contract requests through the mediator; no HTTP between modules of the same process without a recorded reason.
+- [ ] New project: the architecture questions were asked; non-modular project: new code keeps the module seams.
 - [ ] Core project types are internal; only the registrar is public.
 - [ ] Each module has its own database context, schema name and migrations.
 - [ ] Cross-module reads use an event-fed local copy or a contracts query, never another module's context.

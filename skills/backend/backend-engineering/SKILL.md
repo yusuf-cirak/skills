@@ -40,7 +40,7 @@ Match on the work or on the symptom, not only on the topic name. Open every row 
 
 | If the work involves... (or the report says...) | Open | Usually also |
 |---|---|---|
-| Splitting into modules, who may depend on whom, module registration, a module reading another module's data, new module scaffold, extracting a service | `references/architecture-modular-monolith.md` | outbox, idempotency, persistence, observability |
+| Starting a new project (ask the architecture questions), splitting into modules, who may depend on whom, module registration, a module reading or calling another module, a module that must run alone (standalone host), new module scaffold, extracting a service, new code in a non-modular project | `references/architecture-modular-monolith.md` | outbox, idempotency, persistence, observability |
 | Aggregates, entities, value objects, typed ids, domain events, factories, where a port lives | `references/ddd-tactical.md` | persistence, idempotency |
 | First handlers of a new module, adding or reordering pipeline behaviors, thin controller/endpoint structure (not needed for one more handler in an existing module) | `references/cqrs-use-case-pipeline.md` | error-model, observability, idempotency |
 | Error values vs exceptions, validation results, wire error format, what to return vs log | `references/error-model.md` | api-surface, observability |
