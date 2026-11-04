@@ -61,7 +61,7 @@ Default layout (the reference repo, TicketMaster):
 - `src/Modules/<ModuleName>/` — **one project plus a Contracts project**, layers are folders, not projects:
   - `<Solution>.Modules.<ModuleName>/{Application,Domain,Infrastructure,Host,Migrations}` — commands/queries/handlers, aggregates, DbContext + repositories, endpoints + the `IModule` class, EF migrations.
   - `<Solution>.Modules.<ModuleName>.Contracts` — integration events, public DTOs and the request/response records (queries/commands) other modules send through the in-process mediator.
-- `src/Hosts/` — `<Solution>.Monolith` (composes the modules, the default deployable) plus a thin `<Module>.Api` standalone host per module, all on the same `BuildingBlocks` (auth and middleware live there once). Each host registers its modules by type, owns its own `AddMediator()` (the source generator runs only in the outermost project of that host) and applies only its modules' migrations. When a module host runs alone, a contract owned by another module needs a registered remote adapter; the full rules are in the `yusufcirak-skills:backend-engineering` skill (modular monolith reference).
+- `src/Hosts/` — `<Solution>.Monolith` (the single composition root and the single deployed host until an extraction) plus a thin `<Module>.Api` standalone host per module, all on the same `BuildingBlocks` (auth and middleware live there once). Each host registers its modules by type, owns its own `AddMediator()` (the source generator runs only in the outermost project of that host) and applies only its modules' migrations. When a module host runs alone, a contract owned by another module needs a registered remote adapter; the full rules are in the `yusufcirak-skills:backend-engineering` skill (modular monolith reference).
 - `<Solution>.slnx` — solution file.
 
 Module registration is a named opt-in, no assembly scanning for modules:
@@ -75,7 +75,7 @@ builder.AddModules(m => m.Add<PlatformModule>().Add<IamModule>().Add<EventsModul
 api.MapModuleEndpoints(); // every module's MapEndpoints on the shared /api group
 ```
 
-Cross-module calls are `async` mediator requests over the contracts project (`Task<Result<T>>` plus `CancellationToken`, never `.Result` or `.Wait()`); no HTTP between modules of the same process unless a recorded reason adds an adapter behind the same contract.
+Cross-module calls are `async` mediator requests over the contracts project (`Task<Result<T>>` plus `CancellationToken`, never `.Result` or `.Wait()`); no network call between modules of the same process; a remote adapter behind the same contract (gRPC first, HTTP only if gRPC is not possible) is reserved for a true microservice split with a recorded reason. Do not extract prematurely.
 
 If the existing project uses a different architecture, **follow its structure** and record the deviation so it stays consistent across the session, without breaking the module seams: no reads of another feature's tables, depend on contracts or ids, keep the feature's data and handlers together. New project: ask the architecture questions first (see the backend reference "New project: ask first").
 
