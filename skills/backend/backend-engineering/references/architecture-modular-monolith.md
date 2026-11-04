@@ -14,7 +14,7 @@ metadata:
 
 > **Golden path:** One deployable; modules own their data and talk only through a published contracts package and events; enforce the dependency direction with an executable rule.
 
-> **Also open:** `outbox-inbox-messaging.md` (a module publishes or consumes events: never dual-write, deliver at-least-once); `idempotency-locking-concurrency.md` (consumers run twice and handlers race on the same row or local copy: dedupe and version); `persistence-migrations.md` (per-module schema, migrations, tracking defaults); `observability.md` (every handler and consumer needs logs, traces and correlation ids); `ddd-tactical.md` (where aggregates, ports and domain events live); `testing-strategy.md` (boundary, boot and spine tests).
+> **Also open:** `outbox-inbox-messaging.md` (a module publishes or consumes events: never dual-write, deliver at-least-once); `idempotency-locking-concurrency.md` (consumers run twice and handlers race on the same row or local copy: dedupe and version); `persistence-migrations.md` (per-module schema, migrations, tracking defaults); `observability.md` (every handler and consumer needs logs, traces and correlation ids); `ddd-tactical.md` (only when adding an aggregate, port or domain event); `testing-strategy.md` (only when adding a module or a boundary rule: boundary, boot and spine tests).
 
 ## 1. When this applies
 

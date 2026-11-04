@@ -36,13 +36,13 @@ Hard-won rules distilled from a production-grade modular monolith (outbox + CDC 
 
 ## Signal table
 
-Match on the work or on the symptom, not only on the topic name. Open every row that matches; the last column lists what usually comes with it.
+Match on the work or on the symptom, not only on the topic name. Open every row that matches; the last column lists neighbors that often matter: open one only if the work actually touches it, not by default.
 
 | If the work involves... (or the report says...) | Open | Usually also |
 |---|---|---|
 | Splitting into modules, who may depend on whom, module registration, a module reading another module's data, new module scaffold, extracting a service | `references/architecture-modular-monolith.md` | outbox, idempotency, persistence, observability |
 | Aggregates, entities, value objects, typed ids, domain events, factories, where a port lives | `references/ddd-tactical.md` | persistence, idempotency |
-| New handler/use case, pipeline behaviors and order, thin controller/endpoint | `references/cqrs-use-case-pipeline.md` | error-model, observability, idempotency |
+| First handlers of a new module, adding or reordering pipeline behaviors, thin controller/endpoint structure (not needed for one more handler in an existing module) | `references/cqrs-use-case-pipeline.md` | error-model, observability, idempotency |
 | Error values vs exceptions, validation results, wire error format, what to return vs log | `references/error-model.md` | api-surface, observability |
 | Publishing an event, outbox, CDC/relay, event consumer, message id, "event lost", "event delivered twice" | `references/outbox-inbox-messaging.md` | idempotency, persistence, observability |
 | Race condition, two requests at once, check-then-insert, read-modify-write, counters, "sometimes duplicate", double submit, retry, at-least-once consumer, lost update, background job overlap, distributed lock | `references/idempotency-locking-concurrency.md` | persistence (version column), outbox, resilience |
@@ -66,10 +66,10 @@ Ask these for every new handler, endpoint, event consumer, background job or mod
 2. Does it change state and announce it (event, email, webhook)? Open `outbox-inbox-messaging.md`. Never write and publish separately.
 3. When this fails or is slow at 3 a.m., what will the on-call see? Open `observability.md`: structured log with the correlation id at the decision points, a metric for the failure path, a span across the hop. No secrets or PII in the log.
 4. Which failures are expected values and which are bugs? Open `error-model.md`.
-5. Does it cross a module or tenant boundary? Open `architecture-modular-monolith.md` and `multi-tenancy.md`.
+5. Does it cross a module boundary (another module's data, events or contracts)? Open `architecture-modular-monolith.md`. Open `multi-tenancy.md` only if the system has tenants and the code touches tenant-owned data.
 6. Does it call out, wait on or depend on something that can be down? Open `resilience-lifecycle.md`: timeout, bounded work, fail-open or fail-closed written down.
 7. Who may call it and what does it accept from the caller? Open `security-hardening.md`, and `untrusted-input-outbound.md` for URLs, files and fragments.
-8. Which test proves the guard from questions 1-7? Open `testing-strategy.md`.
+8. Did questions 1-7 add a new guard (unique marker, version column, lock, boundary rule, masking)? Then open `testing-strategy.md` to pick the test that proves it. If no new guard was added, skip it.
 
 ## Cross-cutting rules
 

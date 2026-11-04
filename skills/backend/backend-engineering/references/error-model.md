@@ -14,7 +14,7 @@ metadata:
 
 > **Golden path:** Expected failures are values with code, message and status, mapped to the wire format in exactly one place; exceptions are for bugs and invariant violations.
 
-> **Also open:** `api-surface.md` (wire error shape, status codes); `cqrs-use-case-pipeline.md` (where validation and mapping run); `resilience-lifecycle.md` (dependency-unreachable failures: fail-open/closed list); `observability.md` (log unexpected exceptions once, with correlation id).
+> **Also open:** `api-surface.md` (wire error shape, status codes); `cqrs-use-case-pipeline.md` (only when adding or reordering a pipeline behavior); `resilience-lifecycle.md` (dependency-unreachable failures: fail-open/closed list); `observability.md` (log unexpected exceptions once, with correlation id).
 
 ## 1. When this applies
 
