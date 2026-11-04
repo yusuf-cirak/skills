@@ -4,11 +4,11 @@ metadata:
   sections:
     - {title: "1. When this applies", start: 19, end: 29}
     - {title: "2. Principles", start: 31, end: 42}
-    - {title: "3. Design", start: 44, end: 191}
-    - {title: "4. Traps", start: 193, end: 211}
-    - {title: "5. Invariants to test", start: 213, end: 222}
-    - {title: "6. Rationalizations / Red flags", start: 224, end: 233}
-    - {title: "7. Checklist", start: 235, end: 250}
+    - {title: "3. Design", start: 44, end: 194}
+    - {title: "4. Traps", start: 196, end: 215}
+    - {title: "5. Invariants to test", start: 217, end: 226}
+    - {title: "6. Rationalizations / Red flags", start: 228, end: 237}
+    - {title: "7. Checklist", start: 239, end: 255}
 ---
 # Architecture: Modular Monolith
 
@@ -113,6 +113,7 @@ hosts/monolith         = building-blocks + orders + payments + ... (single compo
 - Each host owns its own mediator registration and applies only its modules' migrations.
 - When a host runs a module alone and that module sends a contract owned by another module, the other module's handler is not loaded: register a remote adapter for that contract (gRPC first, HTTP only if gRPC is not possible; see "Extraction path"). A host that sends a contract with no handler fails at boot, not at the first request.
 - Having the thin module host ready is cheap; deploying it, moving data and adding remote adapters is extraction, and extraction needs a reason. Do not extract prematurely.
+- Scope rule: when you scaffold a new project or a new module, create the module's thin host with it. When the task only adds code inside existing modules, do not add hosts; say in one line that the host was left out. A host that cannot compile yet because a contract it sends has no adapter is not created until the adapter exists; record that.
 
 ### Async call shape per language `[proposed]`
 
@@ -186,12 +187,15 @@ Only: base classes (entity, value object, domain/integration event bases), marke
 
 Because data, contracts and events are already separate and every module already has its thin API host, extracting a module is: (1) deploy that host alone, (2) on the calling side register a remote adapter (gRPC first, HTTP only if gRPC is not possible, a broker for events) as the handler for each contract the caller sends to it, so callers do not change, (3) ship the contracts package to both sides, (4) move the module's schema to its own database if needed. Do this only for a named operational reason (independent scaling, release cadence, team autonomy). Do not extract prematurely: until then the monolith host is the single deployed application, one database server with a schema per module, one pipeline. A separate server, pipeline or process per module before there is a reason is cost without benefit.
 
+Events do not survive the process boundary. An in-process publish (mediator notification, in-memory event bus) is lost the moment a module runs in another process. Before extracting, every integration event the module publishes or consumes must already go through its outbox, a relay to a broker, and an inbox on the consumer (`outbox-inbox-messaging.md`). Also list every contract the extracted host still sends to modules it no longer shares a process with (users, email, ...): each one needs a remote adapter in that host, or it fails at boot.
+
 ### Scaffold a new module (checklist order)
 
 Core project (all internal) -> contracts project (events, DTOs, request/response records only) -> thin API host for the module -> tests project -> internal database context + schema constant + migrations -> registrar (the one public type; adds its assembly to the mediator scan list) -> register in host -> boundary rule (NsDepCop or arch test) -> confirm no module references this core project. Template: `Ardalis.Modulith` (`dotnet new modulith`, `dotnet new modulith-module`) generates this shape.
 
 ## 4. Traps
 
+- **In-process publish left in place at extraction.** The module moves to its own process, a post-commit mediator publish keeps "working" in tests, and in production the consumer in the other process never sees the event. Move events to outbox, relay and inbox first.
 - **A per-module host that copies the infrastructure.** The standalone host re-implements authentication or middleware instead of using the shared building blocks, and the hosts drift. One shared set, every host references it.
 - **A standalone host with an unresolved contract.** The module runs alone, sends a contract owned by another module, and no handler is registered: it fails on the first request in production. Register the adapter and cover every host with a boot test.
 - **Fake async.** In Go, a goroutine and channel wrapped around an in-process call; in C#, `.Result` or `.Wait()` on the mediator; in Rust, `block_on` inside a handler. Use the idiom in "Async call shape per language".
@@ -239,6 +243,7 @@ Red flags in a diff: a module project reference to another module; business voca
 - [ ] The module has a thin API host on the shared building blocks; hosts do not copy auth or middleware.
 - [ ] Cross-module calls are async contract requests through the mediator; no network call between modules of the same process; a remote adapter (gRPC, else HTTP) only for a true split with a recorded reason.
 - [ ] One deployed host (the monolith composition root) until a named extraction reason exists.
+- [ ] Before an extraction: events go through outbox, relay and inbox; every contract the extracted host sends has a remote adapter; each host has a boot test.
 - [ ] New project: the architecture questions were asked; non-modular project: new code keeps the module seams.
 - [ ] Core project types are internal; only the registrar is public.
 - [ ] Each module has its own database context, schema name and migrations.
