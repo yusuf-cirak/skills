@@ -2,13 +2,13 @@
 metadata:
   file: observability.md
   sections:
-    - {title: "1. When this applies", start: 21, end: 26}
-    - {title: "2. Principles", start: 28, end: 37}
-    - {title: "3. Design", start: 39, end: 116}
-    - {title: "4. Traps", start: 118, end: 132}
-    - {title: "5. Invariants to test", start: 134, end: 141}
-    - {title: "6. Rationalizations / Red flags", start: 143, end: 153}
-    - {title: "7. Checklist", start: 155, end: 166}
+    - {title: "1. When this applies", start: 21, end: 28}
+    - {title: "2. Principles", start: 30, end: 40}
+    - {title: "3. Design", start: 42, end: 167}
+    - {title: "4. Traps", start: 169, end: 189}
+    - {title: "5. Invariants to test", start: 191, end: 200}
+    - {title: "6. Rationalizations / Red flags", start: 202, end: 216}
+    - {title: "7. Checklist", start: 218, end: 233}
 ---
 # Observability
 
@@ -24,6 +24,8 @@ Language specifics (OpenTelemetry SDK wiring, processor APIs) live in language s
 - Adding a message hop (queue, CDC, outbox) where identity and trace context must survive.
 - Adding a new log field that might carry personal or secret data.
 - Adding health endpoints, custom metrics, or a second logging backend.
+- Writing ANY new endpoint, job, consumer or command handler, even when the task does not mention logging or metrics: it owes the minimum telemetry in "Minimum telemetry per entry point".
+- A user or system reaching a meaningful step of a flow (screen viewed, payment started, order paid) that someone will want to track daily or weekly.
 
 ## 2. Principles
 
@@ -34,7 +36,8 @@ Language specifics (OpenTelemetry SDK wiring, processor APIs) live in language s
 5. **Mask by key name, never by inspecting values.** Value scanning is slow, leaky and wrong in both directions.
 6. **Metric dimensions are low-cardinality; per-user detail belongs on traces and logs.**
 7. **Instrument names identify the library, not the application.** Application identity lives only in the resource.
-8. **Every alternate path has a parity test** (two logging backends, two producers): one test asserts the exported shape is the same.
+8. **Every entry point emits its own telemetry, unasked.** Logs tell the story of one execution; one outcome counter per entry point tells the trend. Nobody should have to request either.
+9. **Every alternate path has a parity test** (two logging backends, two producers): one test asserts the exported shape is the same.
 
 ## 3. Design
 
@@ -111,6 +114,54 @@ Probe groups (startup, liveness, readiness, full), the starvation probe, per-che
 
 The log backend is switchable by configuration (OTel-native default, or a structured-logging library with an OTLP sink). Both share the same primitives: the snake_case routine, the sensitive-key set, the baggage key list. Traces and metrics never switch. A boot test per backend and an exported-shape test keep them identical. Record the alternative in an ADR.
 
+### Minimum telemetry per entry point `[proposed]`
+
+Derived from behavior evaluations of this skill, not from the reference system. Applies to every endpoint, scheduled job, message consumer and command handler. Add it when you write the entry point; do not wait to be asked.
+
+```
+unit of work (request / job run / message)
+  span        around the whole unit; domain ids as attributes (ids belong on spans and logs, never on metric dimensions)
+  log         at each DECISION POINT, one structured line: duplicate, already done, skipped, rejected, fallback taken,
+              retry, outcome unknown. Plus ONE completion line: outcome, duration, counts. Not one line per loop item.
+  counter     <domain>.<operation>.outcome  {result = closed set}
+              every exit path increments it exactly once, including rejects (401, 404, 409), replays and degraded fallbacks
+  histogram   duration of the unit, and of each outbound call
+  job extras  processed / skipped / failed counts per run and a last_success timestamp gauge, so "did last night's job run" is an alert
+  ids         correlation_id from ambient context; never passed by hand
+```
+
+Log shape: constant message template plus separate fields (snake_case keys), never string interpolation or concatenation. Use the language's structured logger: .NET `[LoggerMessage]` source-generated methods (see `yusufcirak-skills:csharp-observability`), Go `log/slog` attributes, TypeScript `pino` object-first calls, Python `structlog` keyword fields with `contextvars` for the ambient ids. Sensitive values are masked by key in the pipeline, not at the call site.
+
+Errors: log an exception once, at the layer that handles it (the boundary), with the exception object. Lower layers wrap or rethrow without logging. A caller mistake (validation, not found) is an outcome: counted, and logged at most at Information, never as an error.
+
+### Log levels `[proposed]`
+
+| Level | Use for | Examples |
+|---|---|---|
+| Debug/Trace | developer diagnostics, off in production | intermediate values |
+| Information | a normal business outcome, including by-design no-ops | order paid, duplicate replayed, event ignored by design, job completed, payment declined by the provider |
+| Warning | abnormal but handled, or a signal worth watching | signature or auth rejected, fail-open fallback taken, retry, dependency slow or unavailable but handled, outcome unknown and parked for reconciliation, lock held by another instance |
+| Error | the operation failed and a human may need to act | unhandled exception, dependency failure that fails the request, data inconsistency (amount mismatch, impossible state), retries exhausted |
+| Critical | the process cannot continue | cannot reach its store at startup |
+
+Rule of thumb: ask "should this page someone?" Error pages, Warning is reviewed in aggregate, Information is searched during an incident. A declined card is a business outcome (Information); an amount mismatch is a consistency fault (Error).
+
+### Product and business events (funnel counters) `[proposed]`
+
+A business milestone is a user or system reaching a meaningful step of a flow: screen or step viewed, started, completed, abandoned, failed with a reason. Each one is a counter, so daily and weekly trends and conversion come from queries instead of log scraping.
+
+```
+checkout.payment_screen.viewed   {channel}                 # user ARRIVED (count when the screen data is served)
+payment.confirm.outcome          {result = succeeded|declined|replayed|provider_unavailable|conflict}
+payment.confirmed.amount         histogram, low-cardinality unit attribute only
+```
+
+- Name them after the domain event, not the service. Principle 7 is about resource identity; business instruments carry the flow and step in their name.
+- A funnel needs a counter at each consecutive step, including the arrival step. Conversion is a ratio computed in the backend over a day or week window.
+- Emit server-side, where the step is served or the state change commits. On an idempotent replay do not count the completion again; count it as `replayed`.
+- Dimensions are a small closed set (result, reason, channel, method type). User id, order id and email never become dimensions. Distinct-user counts (daily active) come from logs or traces, or an analytics store.
+- These counters are the product's own telemetry: they stay on in production and are named in the checklist of the feature that owns the flow.
+
 ### Hot-path logging
 
 Fixed-message events use compile-time generated or pre-bound log calls (no per-call template parse, no boxing). Inline formatted calls are fine for cold paths. Allocate in a processor only when a key actually changes; read the fixed baggage keys directly instead of enumerating the baggage (enumeration allocates an iterator).
@@ -129,6 +180,12 @@ Fixed-message events use compile-time generated or pre-bound log calls (no per-c
 - **Probe-group deadlocks** (migrations versus readiness) are covered in `resilience-lifecycle.md`.
 - **4xx does not flush the sampled-log buffer.** An auth-failure storm is only sampled; alert on metrics, not on buffered logs.
 - **Metrics export on a flush interval (about 60 s).** When verifying locally, generate load and wait.
+- **Expected failure paths left silent.** Not found, conflict, in-progress, empty cart and validation rejects return a value and vanish: no log, no counter. The first time someone asks "how often does checkout hit an empty cart" there is no data. Count every exit path.
+- **Wrong level for a business outcome.** A declined payment logged as Error pages someone for a normal event; an amount mismatch logged as Information hides a real fault. Use the level table.
+- **Same exception logged at every layer.** One failure shows up three times with three stack traces. Log at the boundary that handles it.
+- **Counter incremented before the outcome is known.** An increment before the commit counts attempts as successes. Increment after the state change, in the branch that decides the result.
+- **Arrival not counted.** Only the completion is instrumented, so there is no conversion rate. Count the step the user reached, not just the step they finished.
+- **Unbounded outcome label.** `result` fed by an exception message or an id explodes cardinality. Map to a fixed set first.
 - **Telemetry in tests:** disable the SDK (`OTEL_SDK_DISABLED=true`) to avoid connection-refused noise and shutdown flush delay.
 
 ## 5. Invariants to test
@@ -139,6 +196,8 @@ Fixed-message events use compile-time generated or pre-bound log calls (no per-c
 - Wire-contract test: the in-app relay builds byte-identical topic, key, value and headers to the CDC router.
 - Consumer filter test: consume span parent equals the `traceparent` header; baggage holds both ids.
 - Idempotent gauge registration: build two hosts in one process.
+- `[proposed]` For each entry point, drive every exit path (success, replay, reject, not found, conflict, dependency down) against an in-memory metric reader and assert the outcome counter rose by exactly one with the expected `result`.
+- `[proposed]` Capture logs from the same run: each decision point produced one structured line, the exception was logged once, no field holds a secret or PII, the message template is constant.
 
 ## 6. Rationalizations / Red flags
 
@@ -149,6 +208,10 @@ Fixed-message events use compile-time generated or pre-bound log calls (no per-c
 | "We will mask in the log call" | One forgotten call leaks a token. Mask in the pipeline by key. |
 | "Add user_id as a metric tag, it is useful" | Cardinality explosion. Put it on traces and logs. |
 | "The queue library propagates trace already" | Only from its own header. Test it. |
+| "Nobody asked for logging or metrics" | An entry point without them is unfinished. The first incident asks for them. |
+| "Expected failures are not worth logging" | They are the trend. Count them, log at most Information. |
+| "We can add metrics later, from the logs" | Log scraping is slow and sampled. Count the event where it happens. |
+| "The completion count is enough" | Without the arrival count there is no conversion rate. |
 
 Red flags in a diff: a log call that formats a secret into the message string; a metric tag fed by an unbounded value; a processor that reads ambient context lazily; a second registration of the same span source; a new queue consumer without the context filter.
 
@@ -164,3 +227,7 @@ Red flags in a diff: a log call that formats a secret into the message string; a
 - [ ] Instrument names identify the library; gauges registered idempotently.
 - [ ] Probes split per `resilience-lifecycle.md`; probe routes suppress request logging.
 - [ ] Exported-shape tests and wire-parity test exist.
+- [ ] Every new endpoint, job or consumer has a span, decision-point logs, one completion log and an outcome counter on every exit path.
+- [ ] Levels follow the table; an exception is logged once at the handling boundary.
+- [ ] Logs use a constant template with structured fields; .NET uses `[LoggerMessage]`.
+- [ ] Business milestones of the flow (arrival and completion) are counters with low-cardinality dimensions.

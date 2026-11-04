@@ -53,7 +53,7 @@ Match on the work or on the symptom, not only on the topic name. Open every row 
 | Timeouts, shutdown, health probes, bounded resources, dependency down, fail-open/closed | `references/resilience-lifecycle.md` | observability, error-model |
 | Authn/authz, tokens, headers, CORS, proxies, PII or secrets in logs | `references/security-hardening.md` | untrusted-input, observability |
 | User-supplied URLs/files/XML/SQL fragments, outbound calls to caller-chosen hosts, caching authenticated responses, untrusted text sent to an LLM (general practice, not repo-derived) | `references/untrusted-input-outbound.md` | security, resilience |
-| Logging, log levels, structured logs, metrics, traces, correlation/causation ids, "add logging", alerts, health | `references/observability.md` | security (masking), error-model |
+| Writing any endpoint/job/consumer/handler (it needs logs and metrics unasked), logging, log levels, structured or source-generated logs, metrics, business or funnel metrics ("user reached step X"), daily/weekly tracking, traces, correlation/causation ids, alerts, health | `references/observability.md` | security (masking), error-model |
 | Test tiers, integration tests with real infra, flaky/shared state, concurrency tests, architecture tests | `references/testing-strategy.md` | the reference under test |
 | Warnings policy, dependency pinning, CI gates, perf work, ADRs | `references/build-ci-performance.md` | testing |
 | Versioning, pagination contract, feature flags, route-level opt-ins, middleware order | `references/api-surface.md` | error-model, security |
@@ -64,7 +64,7 @@ Ask these for every new handler, endpoint, event consumer, background job or mod
 
 1. Can two calls touch the same row, key or counter at the same time, or can the same message arrive twice (retry, at-least-once, double click)? Open `idempotency-locking-concurrency.md`. Name the guard: idempotency key, unique marker, version column, or lock.
 2. Does it change state and announce it (event, email, webhook)? Open `outbox-inbox-messaging.md`. Never write and publish separately.
-3. When this fails or is slow at 3 a.m., what will the on-call see? Open `observability.md`: structured log with the correlation id at the decision points, a metric for the failure path, a span across the hop. No secrets or PII in the log.
+3. Does it have telemetry, even though nobody asked? Every new endpoint, job, consumer or handler gets decision-point logs at the right level, an outcome counter on every exit path, a span, and counters for the business milestones of its flow (arrival and completion). Open `observability.md` ("Minimum telemetry per entry point"). No secrets or PII in the log.
 4. Which failures are expected values and which are bugs? Open `error-model.md`.
 5. Does it cross a module boundary (another module's data, events or contracts)? Open `architecture-modular-monolith.md`. Open `multi-tenancy.md` only if the system has tenants and the code touches tenant-owned data.
 6. Does it call out, wait on or depend on something that can be down? Open `resilience-lifecycle.md`: timeout, bounded work, fail-open or fail-closed written down.
