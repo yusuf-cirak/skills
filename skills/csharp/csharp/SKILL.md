@@ -59,6 +59,7 @@ Before the first edit, and again each time the work changes shape, collect signa
 | `yusufcirak-skills:csharp-validation` | a request DTO/command/query; any caller-supplied string or file; `AbstractValidator`; length/size/depth limits; `Regex`; `JsonSerializerOptions`/Kestrel/`FormOptions`; output encoding |
 | `yusufcirak-skills:csharp-hardening` | auth/authz, secrets, rate limiting, idempotency, caching, outbound HTTP/queues, file upload, SSRF, `ProblemDetails`, raw SQL, background jobs, multi-tenancy; untrusted text going to an LLM or prompt |
 | `yusufcirak-skills:csharp-observability` | `ILogger` calls or a new log line, metrics, tracing, `ActivitySource`, correlation ids, health checks, telemetry wiring |
+| `yusufcirak-skills:backend-engineering` | **always for backend C#**: any handler, endpoint, consumer, job, repository or module, whether designing, writing, fixing, testing or reviewing; it holds the language-agnostic rules (gate questions, outbox, idempotency, measurement before shipping) that the siblings assume |
 | `yusufcirak-skills:csharp-testing` | files under `*Tests*`, fixtures/test doubles, "add tests", Testcontainers, a bug or security fix that needs a regression test |
 
 Typical bundles (the signals decide): new feature slice → ddd + web-api + validation + observability + testing; endpoint change → web-api + validation (+ testing); security fix → hardening + validation + testing; LLM call → hardening + validation + observability + testing; service bootstrap → web-api + hardening + observability + validation.

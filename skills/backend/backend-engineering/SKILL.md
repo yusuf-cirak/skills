@@ -2,24 +2,27 @@
 name: backend-engineering
 description: >-
   Language-agnostic backend engineering rules and traps for production services.
-  Use when designing or reviewing a backend service, modular monolith, or API in
-  any language (Go, Rust, TypeScript, C#, ...): module boundaries, DDD
-  aggregates and value objects, CQRS pipelines, error modeling, transactional
-  outbox/inbox, idempotency, distributed locks, multi-tenancy, rate limiting,
-  caching, resilience, security hardening, observability, migrations, testing
-  strategy, build/CI hygiene. Don't use for language idioms (use the language
-  skill), HTTP contract design details (use api-and-interface-design), or
-  strategic clean/hexagonal/DDD layout (use architecture-patterns).
+  Use before writing, changing, fixing, testing or reviewing any backend code
+  (handlers, endpoints, consumers, jobs, repositories, modules), and when
+  designing or reviewing a backend service, modular monolith, or API in any
+  language (Go, Rust, TypeScript, C#, ...): module boundaries, DDD aggregates
+  and value objects, CQRS pipelines, error modeling, transactional outbox/inbox,
+  idempotency, distributed locks, multi-tenancy, rate limiting, caching,
+  resilience, security hardening, observability, migrations, testing strategy,
+  build/CI hygiene, measurement-driven verification of new features against the
+  old behavior. Don't use for language idioms (use the language skill), HTTP
+  contract design details (use api-and-interface-design), or strategic
+  clean/hexagonal/DDD layout (use architecture-patterns).
 metadata:
   version: "1.1.0"
   category: Backend Engineering
   sections:
-    - {title: "How to use", start: 29, end: 35}
-    - {title: "Signal table", start: 37, end: 60}
-    - {title: "Gate questions", start: 62, end: 74}
-    - {title: "Cross-cutting rules", start: 76, end: 90}
-    - {title: "Relationship to other skills", start: 92, end: 95}
-    - {title: "Reference file contract", start: 97, end: 107}
+    - {title: "How to use", start: 32, end: 38}
+    - {title: "Signal table", start: 40, end: 63}
+    - {title: "Gate questions", start: 65, end: 77}
+    - {title: "Cross-cutting rules", start: 79, end: 93}
+    - {title: "Relationship to other skills", start: 95, end: 98}
+    - {title: "Reference file contract", start: 100, end: 110}
 ---
 
 # Backend Engineering

@@ -38,13 +38,15 @@ const csharpBanner = [
   "",
   "For any C# / .NET / ASP.NET Core work (`.cs`, `.csproj`, `.sln`, `.slnx`, `.razor`, `.cshtml`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`; or topics: C#, .NET, EF Core, DDD in .NET, xUnit/NUnit/MSTest), invoke `yusufcirak-skills:csharp` with the Skill tool before the first edit.",
   "",
+  "C# backend work needs `yusufcirak-skills:backend-engineering` as well as `yusufcirak-skills:csharp`: invoke both before the first edit.",
+  "",
   "`yusufcirak-skills:csharp` holds the core style and the signal table for the sibling skills (`yusufcirak-skills:csharp-ddd`, `yusufcirak-skills:csharp-web-api`, `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-hardening`, `yusufcirak-skills:csharp-observability`, `yusufcirak-skills:csharp-testing`). Invoke every sibling whose signal appears in the work.",
 ].join("\n");
 
 const backendBanner = [
   "# Backend engineering house rules (yusufcirak-skills)",
   "",
-  "For any backend service design or review work in any language (module boundaries / modular monolith, DDD aggregates, CQRS pipelines, error modeling, outbox/inbox, idempotency, locks, multi-tenancy, rate limiting, caching, resilience, security hardening, observability, migrations, testing strategy, CI, measuring a feature against the old behavior before shipping), invoke `yusufcirak-skills:backend-engineering` with the Skill tool before the first edit.",
+  "Whenever you write, change, fix, test, build or review backend code in any language (handlers, endpoints, consumers, jobs, repositories, modules; not only design or review work), invoke `yusufcirak-skills:backend-engineering` with the Skill tool before the first edit. Topics it covers: module boundaries / modular monolith, DDD aggregates, CQRS pipelines, error modeling, outbox/inbox, idempotency, locks, multi-tenancy, rate limiting, caching, resilience, security hardening, observability, migrations, testing strategy, CI, measuring a feature against the old behavior before shipping.",
   "",
   "`yusufcirak-skills:backend-engineering` holds the cross-cutting rules and the signal table for its `references/`. Open every reference whose signal appears in the work, not just the closest one.",
 ].join("\n");

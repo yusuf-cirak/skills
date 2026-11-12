@@ -28,10 +28,10 @@ GOLDEN = {
 SKILL_NAME = "backend-engineering"
 SKILL_DESC = (
     "Language-agnostic backend engineering rules and traps for production services. "
-    "Use when designing or reviewing a backend service, modular monolith, or API in any language "
+    "Use before writing, changing, fixing, testing or reviewing any backend code (handlers, endpoints, consumers, jobs, repositories, modules), and when designing or reviewing a backend service, modular monolith, or API in any language "
     "(Go, Rust, TypeScript, C#, ...): module boundaries, DDD aggregates and value objects, CQRS pipelines, "
     "error modeling, transactional outbox/inbox, idempotency, distributed locks, multi-tenancy, rate limiting, "
-    "caching, resilience, security hardening, observability, migrations, testing strategy, build/CI hygiene. "
+    "caching, resilience, security hardening, observability, migrations, testing strategy, build/CI hygiene, measurement-driven verification of new features against the old behavior. "
     "Don't use for language idioms (use the language skill), HTTP contract design details "
     "(use api-and-interface-design), or strategic clean/hexagonal/DDD layout (use architecture-patterns)."
 )
