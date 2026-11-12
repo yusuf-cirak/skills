@@ -1,7 +1,7 @@
 {
   "name": "yusufcirak-skills",
-  "version": "0.1.0",
-  "description": "Yusuf Cirak's agent skills: C# / .NET / ASP.NET Core house style (csharp entry point plus csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, csharp-testing) and language-agnostic backend engineering rules (backend-engineering, 17 references).",
+  "version": "0.2.0",
+  "description": "Yusuf Cirak's agent skills: C# / .NET / ASP.NET Core house style (csharp entry point plus csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, csharp-testing) and language-agnostic backend engineering rules (backend-engineering, 18 references).",
   "author": {
     "name": "Yusuf Cirak",
     "email": "rewal34@gmail.com"

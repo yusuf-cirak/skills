@@ -21,6 +21,7 @@ GOLDEN = {
     "observability": "One resource identity across traces, metrics and logs; correlation and causation ids carried in ambient context across every hop; masking applied in the log pipeline.",
     "testing-strategy": "Unit tests for logic, executable architecture rules for dependency direction, and a few integration tests against real infrastructure for what fakes cannot prove.",
     "build-ci-performance": "Warnings fail the build with an explicit exception list, versions are pinned in one place, and performance work starts with a measurement and removes round trips before allocations.",
+    "measurement-driven-verification": "Before a feature reaches users, measure its effect on system resources against the old behavior under the same workload, fix every regression you find without breaking the structure already built, attack it with harder realistic scenarios, look for a better design, and do all of it in the user's own isolated environment.",
     "api-surface": "Declare cross-cutting policy on the route, version from day one, clamp pagination at the boundary, and keep one documented middleware order.",
 }
 

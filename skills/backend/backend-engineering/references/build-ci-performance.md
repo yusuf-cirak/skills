@@ -14,7 +14,7 @@ metadata:
 
 > **Golden path:** Warnings fail the build with an explicit exception list, versions are pinned in one place, and performance work starts with a measurement and removes round trips before allocations.
 
-> **Also open:** `testing-strategy.md` (which test tiers CI runs); `persistence-migrations.md` (indexes, rolling-deploy migrations); `caching.md` (stampede and latency work); `rate-limiting-load-shedding.md` (limiter cost on the hot path).
+> **Also open:** `testing-strategy.md` (which test tiers CI runs); `persistence-migrations.md` (indexes, rolling-deploy migrations); `caching.md` (stampede and latency work); `rate-limiting-load-shedding.md` (limiter cost on the hot path); `measurement-driven-verification.md` (the full verify-before-shipping loop behind the method below).
 
 Language skills own tooling syntax (`yusufcirak-skills:csharp` references `build-and-analyzers` and `performance` for the .NET forms). This file owns the policy decisions and the method.
 

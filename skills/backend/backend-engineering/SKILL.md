@@ -15,11 +15,11 @@ metadata:
   category: Backend Engineering
   sections:
     - {title: "How to use", start: 29, end: 35}
-    - {title: "Signal table", start: 37, end: 59}
-    - {title: "Gate questions", start: 61, end: 72}
-    - {title: "Cross-cutting rules", start: 74, end: 87}
-    - {title: "Relationship to other skills", start: 89, end: 92}
-    - {title: "Reference file contract", start: 94, end: 104}
+    - {title: "Signal table", start: 37, end: 60}
+    - {title: "Gate questions", start: 62, end: 74}
+    - {title: "Cross-cutting rules", start: 76, end: 90}
+    - {title: "Relationship to other skills", start: 92, end: 95}
+    - {title: "Reference file contract", start: 97, end: 107}
 ---
 
 # Backend Engineering
@@ -56,6 +56,7 @@ Match on the work or on the symptom, not only on the topic name. Open every row 
 | Writing any endpoint/job/consumer/handler (it needs logs and metrics unasked), logging, log levels, structured or source-generated logs, metrics, business or funnel metrics ("user reached step X"), daily/weekly tracking, traces, correlation/causation ids, alerts, health | `references/observability.md` | security (masking), error-model |
 | Test tiers, integration tests with real infra, flaky/shared state, concurrency tests, architecture tests | `references/testing-strategy.md` | the reference under test |
 | Warnings policy, dependency pinning, CI gates, perf work, ADRs | `references/build-ci-performance.md` | testing |
+| A feature is built or replaced and about to be shown to users, a performance or resource claim ("faster", "cheaper", "safe"), benchmark/load test, old-vs-new comparison, regression found, "is it ready to ship" | `references/measurement-driven-verification.md` | build-ci-performance, testing, resilience |
 | Versioning, pagination contract, feature flags, route-level opt-ins, middleware order | `references/api-surface.md` | error-model, security |
 
 ## Gate questions
@@ -70,6 +71,7 @@ Ask these for every new handler, endpoint, event consumer, background job or mod
 6. Does it call out, wait on or depend on something that can be down? Open `resilience-lifecycle.md`: timeout, bounded work, fail-open or fail-closed written down.
 7. Who may call it and what does it accept from the caller? Open `security-hardening.md`, and `untrusted-input-outbound.md` for URLs, files and fragments.
 8. Did questions 1-7 add a new guard (unique marker, version column, lock, boundary rule, masking)? Then open `testing-strategy.md` to pick the test that proves it. If no new guard was added, skip it.
+9. Does it add or replace behavior that costs resources (CPU, memory, I/O, round trips, latency, cost) or sits on a hot path? Open `measurement-driven-verification.md`: measure it against the old behavior in the user's own isolated environment before users see it. No plausible resource impact? Write one line saying why.
 
 ## Cross-cutting rules
 
@@ -84,7 +86,8 @@ These recur in every reference. If a design violates one, stop and justify it in
 7. **Every alternate path has a parity test.** Two producers, two relays, two logging backends: one test asserts byte-identical output.
 8. **Silent failure is the enemy.** Prefer designs that crash or alarm over designs that quietly do nothing (unkeyed writer, missing include list, unmigrated table, no-tracking write, double-encoded payload).
 9. **Tests fail the build for architecture.** Dependency direction, module boundaries and "no unkeyed X" are executable rules, not wiki pages.
-10. **Record the why, not the what.** One-page decision records; commit messages carry cause, mechanism, measured before/after.
+10. **Measure before shipping.** A new or replaced feature reaches users only with old-vs-new numbers taken in the user's own isolated environment. Regressions are fixed without breaking the built structure, or offered to the user as options; clean results are attacked with harder scenarios, and a better design is offered, never swapped in silently.
+11. **Record the why, not the what.** One-page decision records; commit messages carry cause, mechanism, measured before/after.
 
 ## Relationship to other skills
 

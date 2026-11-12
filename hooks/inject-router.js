@@ -44,7 +44,7 @@ const csharpBanner = [
 const backendBanner = [
   "# Backend engineering house rules (yusufcirak-skills)",
   "",
-  "For any backend service design or review work in any language (module boundaries / modular monolith, DDD aggregates, CQRS pipelines, error modeling, outbox/inbox, idempotency, locks, multi-tenancy, rate limiting, caching, resilience, security hardening, observability, migrations, testing strategy, CI), invoke `yusufcirak-skills:backend-engineering` with the Skill tool before the first edit.",
+  "For any backend service design or review work in any language (module boundaries / modular monolith, DDD aggregates, CQRS pipelines, error modeling, outbox/inbox, idempotency, locks, multi-tenancy, rate limiting, caching, resilience, security hardening, observability, migrations, testing strategy, CI, measuring a feature against the old behavior before shipping), invoke `yusufcirak-skills:backend-engineering` with the Skill tool before the first edit.",
   "",
   "`yusufcirak-skills:backend-engineering` holds the cross-cutting rules and the signal table for its `references/`. Open every reference whose signal appears in the work, not just the closest one.",
 ].join("\n");

@@ -44,7 +44,7 @@ C# / .NET / ASP.NET Core house style. `csharp` is the entry point; it holds the 
 
 ### Backend
 
-- **[backend-engineering](./skills/backend/backend-engineering/SKILL.md)**: Language-agnostic rules and traps for production services, with 17 references (modular monolith, DDD tactical, CQRS pipeline, error model, outbox/inbox, idempotency and locking, multi-tenancy, rate limiting, caching, resilience, security hardening, untrusted input, observability, persistence and migrations, testing strategy, build/CI, API surface).
+- **[backend-engineering](./skills/backend/backend-engineering/SKILL.md)**: Language-agnostic rules and traps for production services, with 18 references (modular monolith, DDD tactical, CQRS pipeline, error model, outbox/inbox, idempotency and locking, multi-tenancy, rate limiting, caching, resilience, security hardening, untrusted input, observability, persistence and migrations, testing strategy, build/CI, measurement-driven verification, API surface).
 
 ## SessionStart hook
 

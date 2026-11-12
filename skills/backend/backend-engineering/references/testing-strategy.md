@@ -14,7 +14,7 @@ metadata:
 
 > **Golden path:** Unit tests for logic, executable architecture rules for dependency direction, and a few integration tests against real infrastructure for what fakes cannot prove.
 
-> **Also open:** `architecture-modular-monolith.md` (boundary and boot tests); `outbox-inbox-messaging.md` (runtime spine test); `idempotency-locking-concurrency.md` (parallel-duplicate and race tests); `build-ci-performance.md` (CI gates).
+> **Also open:** `architecture-modular-monolith.md` (boundary and boot tests); `outbox-inbox-messaging.md` (runtime spine test); `idempotency-locking-concurrency.md` (parallel-duplicate and race tests); `build-ci-performance.md` (CI gates); `measurement-driven-verification.md` (old-vs-new measurement before shipping).
 
 Language skills own framework and assertion-library choices (`yusufcirak-skills:csharp-testing` for .NET). This file owns what each tier must prove and the isolation traps that make suites lie.
 
