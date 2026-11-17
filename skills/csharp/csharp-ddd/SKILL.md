@@ -48,6 +48,14 @@ Owns **where domain logic lives** and how the solution is structured: DDD tactic
   interfaces, and `Try*` pattern-matched transitions. Pick the stored shape (flat record, TPH, or
   polymorphic JSON) from the domain and the DB technology; callers use one `WriteTo`-style method and
   the state decides whether it writes or no-ops. Full pattern: `../csharp/references/state-as-types.md`.
+- **Every change to a domain object happens inside that object; the outside sees only simple intent-named methods.**
+  Callers (handlers, services) never assign properties, flip a status or add child/audit rows themselves, and never
+  decide *when* to save in between. The aggregate method performs the whole change (state, child entities, audit
+  trail) so one call is one consistent unit that the caller's single `SaveChanges` commits in one transaction. A new
+  rule about an existing change goes **into the method that already owns it** (extend its chain or branch), not into
+  the caller and not into a second save. Tests drive the same public method. If you are about to add a save, a
+  try/catch or an `if (state ...)` in a handler to make a domain change work, the change belongs in the domain
+  method instead.
 
 ## Modular Monolith Architecture
 

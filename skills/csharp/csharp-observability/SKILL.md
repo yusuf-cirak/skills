@@ -124,6 +124,13 @@ builder.Logging.AddJsonConsole(o => o.JsonWriterOptions = new() { Indented = fal
 Rules:
 
 - **Write snake_case property names in templates** — `[LoggerMessage(Message = "settled {order_id} in {elapsed_ms}")]` (source-generated logging is the default, see below; same rule for any inline template) — so app attributes land snake_cased without a rewrite pass. (Framework scope keys stay PascalCase; that's fine — see Gotchas.)
+- **Keep each log message minimal; shared context lives in the log scope, not in the message.** Identifiers and
+  facts that hold for the whole operation (entity id, user, tenant, correlation) are attached once with
+  `ILogger.BeginScope` (or baggage) where the operation starts, and every line inside inherits them. A message
+  carries only what is specific to that event (the outcome, a count, a status). Before adding a field to a message
+  or a scope, check what is **already in scope** - the current handler's scope and every enclosing one (middleware,
+  job, parent handler, baggage) - and do not add it again, so no line shows the same key twice. If a needed field is
+  missing, add it to the scope at the entry point rather than passing it into each `[LoggerMessage]`.
 - **Sensitive masking is key-based** (a `FrozenSet` of sensitive attribute names → value becomes `***`), **never** a regex/string-scan over values. Mask `password`, `token`, `authorization`, `api_key`, card/PAN, `email`, `phone`, etc. (See `csharp-hardening` for the HTTP header allow-list + query-param redaction.)
 - **Tail log sampling** (log *all* lines of an errored request; ~20% of healthy ones): implement with `Microsoft.Extensions.Telemetry` per-request buffering (`AddPerIncomingRequestBuffer` + `PerRequestLogBuffer.Flush()`) and flush on 5xx/exception. **Do NOT** try to drop records in a `BaseProcessor` — see Gotchas.
 - Never log `Authorization`/`Cookie`/tokens or full request/response bodies; bodies off in Production.
