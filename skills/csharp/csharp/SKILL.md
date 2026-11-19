@@ -1,6 +1,6 @@
 ---
 name: csharp
-description: Applies the C# house style and routes to the sibling skills. ALWAYS use before writing, editing, or reviewing any C#/.NET code, including every new feature, endpoint, handler, consumer or job: it carries the golden paths (hardening, logging, concurrency, security, errors, caching, resilience, testing) that apply even when the user did not ask for them. Use before writing, editing, or reviewing any C#/.NET code (`.cs`, `.csproj`, `.slnx`, `Directory.Packages.props`) and for questions about C# idioms or the coding standards. Entry point to the csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, and csharp-testing skills.
+description: Applies the C# house style and routes to the sibling skills. ALWAYS use before writing, editing, or reviewing any C#/.NET code, including every new feature, endpoint, handler, consumer or job, since it carries the golden paths (hardening, logging, concurrency, security, errors, caching, resilience, testing) that apply even when the user did not ask for them. Use before writing, editing, or reviewing any C#/.NET code (`.cs`, `.csproj`, `.slnx`, `Directory.Packages.props`) and for questions about C# idioms or the coding standards. Entry point to the csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, and csharp-testing skills.
 ---
 
 # C# House Style
