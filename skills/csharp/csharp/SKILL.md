@@ -1,12 +1,13 @@
 ---
 name: csharp
-description: Applies the C# house style and routes to the sibling skills. Use before writing, editing, or reviewing any C#/.NET code (`.cs`, `.csproj`, `.slnx`, `Directory.Packages.props`) and for questions about C# idioms or the coding standards. Entry point to the csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, and csharp-testing skills.
+description: Applies the C# house style and routes to the sibling skills. ALWAYS use before writing, editing, or reviewing any C#/.NET code, including every new feature, endpoint, handler, consumer or job: it carries the golden paths (hardening, logging, concurrency, security, errors, caching, resilience, testing) that apply even when the user did not ask for them. Use before writing, editing, or reviewing any C#/.NET code (`.cs`, `.csproj`, `.slnx`, `Directory.Packages.props`) and for questions about C# idioms or the coding standards. Entry point to the csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, and csharp-testing skills.
 ---
 
 # C# House Style
 
 ## Contents
 
+- Golden paths (apply to every feature)
 - Route first → `yusufcirak-skills:csharp-ddd`, `yusufcirak-skills:csharp-web-api`, `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-hardening`, `yusufcirak-skills:csharp-observability`, `yusufcirak-skills:csharp-testing`
 - Namespaces & file organization
 - Async methods → `references/async-concurrency.md`
@@ -62,9 +63,32 @@ Before the first edit, and again each time the work changes shape, collect signa
 | `yusufcirak-skills:backend-engineering` | **always for backend C#**: any handler, endpoint, consumer, job, repository or module, whether designing, writing, fixing, testing or reviewing; it holds the language-agnostic rules (gate questions, outbox, idempotency, measurement before shipping) that the siblings assume |
 | `yusufcirak-skills:csharp-testing` | files under `*Tests*`, fixtures/test doubles, "add tests", Testcontainers, a bug or security fix that needs a regression test |
 
-Typical bundles (the signals decide): new feature slice → ddd + web-api + validation + observability + testing; endpoint change → web-api + validation (+ testing); security fix → hardening + validation + testing; LLM call → hardening + validation + observability + testing; service bootstrap → web-api + hardening + observability + validation.
+Typical bundles (the signals decide): new feature slice → ddd + web-api + validation + hardening + observability + testing (+ every golden path below); endpoint change → web-api + validation (+ testing); security fix → hardening + validation + testing; LLM call → hardening + validation + observability + testing; service bootstrap → web-api + hardening + observability + validation.
 
 Re-route at these checkpoints: a new file type or layer enters the change; a log statement is added; a request type or user-supplied string appears; an outbound call (HTTP, LLM, queue) is added; the first test is written; and once more over the final diff before reporting done.
+
+## Golden paths (apply to every feature, unasked)
+
+Every new endpoint, handler, consumer, job or module is checked against ALL golden paths below, not only the ones the user mentioned. Skipping hardening, logging, concurrency or security because the user did not ask is a defect. For each line, either apply it or write one line saying why it does not apply. Open the linked reference when the line is relevant to the change.
+
+- **api-surface**: Declare cross-cutting policy on the route, version from day one, clamp pagination at the boundary, and keep one documented middleware order. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/api-surface.md`)
+- **architecture-modular-monolith**: One deployable; modules own their data and talk only through a published contracts package and events; enforce the dependency direction with an executable rule. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/architecture-modular-monolith.md`)
+- **build-ci-performance**: Warnings fail the build with an explicit exception list, versions are pinned in one place, and performance work starts with a measurement and removes round trips before allocations. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/build-ci-performance.md`)
+- **caching**: Use a two-level cache with single-flight, stale-while-revalidate and cross-node invalidation from a library; never cache counters or freshness-critical decisions. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/caching.md`)
+- **cqrs-use-case-pipeline**: One request, one handler; cross-cutting checks are pipeline steps opted into by marker; declare the step order in one place and test it. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/cqrs-use-case-pipeline.md`)
+- **ddd-tactical**: Build aggregates only through factories that return success-or-error, give every aggregate its own id type, keep cross-cutting ports out of the domain layer, and raise events inside the aggregate. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/ddd-tactical.md`)
+- **error-model**: Expected failures are values with code, message and status, mapped to the wire format in exactly one place; exceptions are for bugs and invariant violations. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/error-model.md`)
+- **idempotency-locking-concurrency**: Scope idempotency keys by caller and tenant, claim them atomically, use a renewing non-blocking lock only for genuinely-once work, and detect lost updates with a database-maintained version. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/idempotency-locking-concurrency.md`)
+- **measurement-driven-verification**: Before a feature reaches users, measure its effect on system resources against the old behavior under the same workload, fix every regression you find without breaking the structure already built, attack it with harder realistic scenarios, look for a better design, and do all of it in the user's own isolated environment. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/measurement-driven-verification.md`)
+- **multi-tenancy**: Apply the tenant predicate automatically on reads, enforce it fail-closed on every write path, resolve the tenant from a trusted source, and keep the bypass explicit and greppable. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/multi-tenancy.md`)
+- **observability**: One resource identity across traces, metrics and logs; correlation and causation ids carried in ambient context across every hop; masking applied in the log pipeline. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/observability.md`)
+- **outbox-inbox-messaging**: Write the event row in the same transaction as the state change, run exactly one relay, deliver at-least-once, and make every consumer idempotent with a unique (message id, consumer) marker. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/outbox-inbox-messaging.md`)
+- **persistence-migrations**: Derive names by convention, make writes explicit about tracking, migrate with expand/contract, clamp page size at the boundary, and prefer keyset paging at scale. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/persistence-migrations.md`)
+- **rate-limiting-load-shedding**: Key limits on the authenticated principal or server-observed IP plus the matched route template, count in one authoritative store, shield it with an equal-cap local limiter, and fail open with a metric. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/rate-limiting-load-shedding.md`)
+- **resilience-lifecycle**: Bound every client-controlled resource and every outbound call, split probes into startup/liveness/readiness, flip readiness at SIGTERM, and keep a written fail-open/closed list. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/resilience-lifecycle.md`)
+- **security-hardening**: Deny by default, validate issuer, audience, lifetime and signature with tight skew, keep a revocation path, trust proxy headers only from known proxies, and mask logs by key name. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/security-hardening.md`)
+- **testing-strategy**: Unit tests for logic, executable architecture rules for dependency direction, and a few integration tests against real infrastructure for what fakes cannot prove. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/testing-strategy.md`)
+- **untrusted-input-outbound**: Treat attacker-influenced data as data: parameterise queries, guard every caller-chosen outbound URL against internal ranges, validate uploads by content, and isolate untrusted text in prompts. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/untrusted-input-outbound.md`)
 
 ## Namespaces & file organization
 
