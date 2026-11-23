@@ -44,7 +44,7 @@ public static void RegisterVogenEfCoreConverters(this ModelConfigurationBuilder 
 
 - **JSON:** Vogen applies `[JsonConverter]` to the struct → System.Text.Json uses it automatically, no global registration.
 - **Route/query binding:** Vogen generates `IParsable` → minimal API binds the id straight from the URL.
-- **Package caveat:** reference Vogen as `<PackageReference Include="Vogen" ExcludeAssets="contentFiles" PrivateAssets="analyzers" />` — never `PrivateAssets="all"`. The package bundles the generator (`analyzers/`) and the `Vogen.SharedTypes` runtime lib (`lib/`) that generated code references; `"all"` compiles, then the first VO use throws `FileNotFoundException` because `Vogen.SharedTypes.dll` was never deployed. `PrivateAssets="analyzers"` keeps the generator out of downstream projects while the small runtime dll still ships; `ExcludeAssets="contentFiles"` only hides the redundant `Vogen.targets` IDE node (the real one in `buildTransitive/` is unaffected). Same pair in `build-and-analyzers.md`.
+- **Package caveat:** reference Vogen with `PrivateAssets="analyzers"`, never `"all"` (the runtime `Vogen.SharedTypes` dll must still ship). Exact reference: `setups/build-analyzers.md`.
 
 ## `[ValueObject<string>]` VOs (IpAddress, PhoneNumber)
 

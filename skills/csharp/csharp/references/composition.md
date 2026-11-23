@@ -65,32 +65,7 @@ When authoring a library, NuGet package, or EF Core provider/extension:
   instead of ten. Consistent with records-everywhere.
 - Offer **generic + non-generic overloads** where a caller may hold only a `Type`
   (`Set<TEntity>()` and `Set(Type entityType)`).
-- Argument/precondition guards for **programmer error** stay exceptions at the public boundary — a
-  contract check, not `Result<T>` business validation. If the project already references
-  **Ardalis.GuardClauses** (a common choice for this vocabulary), use it consistently —
-  `Guard.Against.Null(input)`, `Guard.Against.NullOrWhiteSpace(name)`, `Guard.Against.NegativeOrZero(qty)`,
-  `Guard.Against.OutOfRange(page, nameof(page), 1, InputLimits.MaxPageSize)` — and add project-specific
-  checks as **`IGuardClause` extension methods** so every call site stays `Guard.Against.X(...)`.
-  Otherwise match whatever guard convention the codebase already has (hand-rolled static `Guard` class,
-  etc.) rather than introducing a competing vocabulary mid-codebase. If guards are scattered and
-  inconsistent (ad-hoc `if (x is null) throw` / bare `ArgumentNullException.ThrowIfNull` with no shared
-  vocabulary), recommend adding **Ardalis.GuardClauses** and ask before adding the package — it's the
-  de-facto standard for this and worth introducing once there's no existing convention to clash with.
-  Reserve guards for impossible/contract violations — expected, user-facing validation failures flow
-  through `Result<T>` / FluentValidation (see `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-ddd` factory rules), never a thrown guard.
-
-```csharp
-Guard.Against.NullOrWhiteSpace(name);
-Guard.Against.OutOfRange(page, nameof(page), 1, InputLimits.MaxPageSize);
-
-// project-specific guard as an extension — call site stays Guard.Against.*
-public static class GuardExtensions
-{
-    public static string InvalidEmail(this IGuardClause guard, string input,
-        [CallerArgumentExpression(nameof(input))] string? name = null)
-        => EmailRegex.IsMatch(input) ? input : throw new ArgumentException("invalid email", name);
-}
-```
+- Argument and precondition guards for **programmer error** stay exceptions at the public boundary: a contract check, not `Result<T>` business validation. Match the codebase's existing guard convention (Ardalis.GuardClauses `Guard.Against.X(...)`, a hand-rolled `Guard` class, or `ArgumentNullException.ThrowIfNull`) and add project-specific checks as extensions of that same vocabulary. If guards are scattered with no shared convention, recommend Ardalis.GuardClauses and ask before adding it (`setups/optional-libraries.md`). Expected, user-facing validation failures flow through `Result<T>` / FluentValidation (see `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-ddd` factory rules), never a thrown guard.
 - Mark framework-internal public API that is exempt from semver with an internal-API marker attribute
   (the `[EntityFrameworkInternal]` analog); prefer real `internal` + `[InternalsVisibleTo]` when the
   surface need not be public at all.

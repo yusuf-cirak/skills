@@ -2,7 +2,7 @@
 // yusufcirak-skills SessionStart hook.
 // Detects the project stack from the session cwd and injects the matching entry-point
 // instruction so the right skill is invoked WITHOUT a manual block in the user's CLAUDE.md:
-//   C# / .NET detected            -> C# house-style banner + backend banner
+//   C# / .NET detected            -> C# house-style banner only
 //   other server stack detected   -> backend banner only
 //   nothing detected              -> no output (a silent SessionStart hook adds no context)
 // Claude Code reads the nested hookSpecificOutput.additionalContext shape; a top-level
@@ -37,8 +37,6 @@ const csharpBanner = [
   "# C# / .NET house style (yusufcirak-skills)",
   "",
   "For any C# / .NET / ASP.NET Core work (`.cs`, `.csproj`, `.sln`, `.slnx`, `.razor`, `.cshtml`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`; or topics: C#, .NET, EF Core, DDD in .NET, xUnit/NUnit/MSTest), invoke `yusufcirak-skills:csharp` with the Skill tool before the first edit.",
-  "",
-  "C# backend work needs `yusufcirak-skills:backend-engineering` as well as `yusufcirak-skills:csharp`: invoke both before the first edit.",
   "",
   "`yusufcirak-skills:csharp` holds the core style and the signal table for the sibling skills (`yusufcirak-skills:csharp-ddd`, `yusufcirak-skills:csharp-web-api`, `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-hardening`, `yusufcirak-skills:csharp-observability`, `yusufcirak-skills:csharp-testing`). Invoke every sibling whose signal appears in the work.",
 ].join("\n");

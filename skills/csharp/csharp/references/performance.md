@@ -18,25 +18,11 @@ Load when touching a per-request, per-record, or per-message path; building stri
 
 ### String operations — ZString
 
-ZString (Cysharp) is the preferred string-building/formatting library: zero-allocation `Concat`/`Format`/`Join` and pooled builders. **If the project already references ZString, use it by default** for any string build/concat/format. **If it doesn't, recommend it and ask before adding the package** (`dotnet add package ZString`); until it's in, fall back to `StringBuilder`/interpolation.
-
-```csharp
-using Cysharp.Text; // ZString
-
-var line = ZString.Format("settled {0} in {1}ms", orderId, elapsedMs); // no boxing, no intermediate strings
-var csv  = ZString.Join(',', ids);
-
-using var sb = ZString.CreateStringBuilder(); // pooled buffer — always `using`
-sb.Append(header);
-sb.AppendFormat("{0:D8}", sequence);
-var payload = sb.ToString();
-
-using var utf8 = ZString.CreateUtf8StringBuilder(); // writes UTF8 directly — pairs with IBufferWriter<byte>
-```
+ZString (Cysharp) is the preferred string-building/formatting library: zero-allocation `Concat`/`Format`/`Join` and pooled builders. If the project already references it, use it by default for any string build, concat or format. If not, recommend it and ask before adding the package (`setups/optional-libraries.md`); until then fall back to `StringBuilder` or interpolation.
 
 - `ZString.Concat`/`Format`/`Join` over `string.Concat`/`string.Format`/`string.Join`, and over `+`/interpolation on hot paths.
-- `ZString.CreateStringBuilder()` over `new StringBuilder()` for loop concatenation — same rule as the hot-path discipline below, minus the builder allocation.
-- `CreateUtf8StringBuilder()` when the destination is bytes (network, file, `IBufferWriter<byte>`) — skips the UTF16→UTF8 transcode.
+- `ZString.CreateStringBuilder()` (always `using`) over `new StringBuilder()` for loop concatenation.
+- `CreateUtf8StringBuilder()` when the destination is bytes (network, file, `IBufferWriter<byte>`): skips the UTF16 to UTF8 transcode.
 
 ### Pooled streams — `RecyclableMemoryStreamManager`
 
@@ -113,7 +99,7 @@ On per-request / per-record / per-message paths (middleware, log/OTel processors
 public sealed partial class AppJsonContext : JsonSerializerContext;
 ```
 
-- **Wiring is owned by `yusufcirak-skills:csharp-validation`** (§4 Global `JsonSerializerOptions` hardening) — feed the context
+- **Wiring is owned by `yusufcirak-skills:csharp-validation`** (Global `JsonSerializerOptions`) — feed the context
   to the hardened options' resolver chain there; do **not** configure `ConfigureHttpJsonOptions` here.
 - For a Native-AOT service set `<PublishAot>true</PublishAot>`; prefer Minimal API + `TypedResults` and
   avoid reflection-based serializers/mappers.

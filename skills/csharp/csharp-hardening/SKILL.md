@@ -7,7 +7,7 @@ description: Hardens ASP.NET Core services exposed to untrusted or multi-tenant 
 
 ## Contents
 
-- Tiered Rate Limiting & Burst Protection
+- Tiered Rate Limiting & Burst Protection → `../csharp/references/setups/rate-limiting.md`
 - Idempotency
 - AuthN / AuthZ
 - Security Headers + CORS
@@ -37,6 +37,7 @@ description: Hardens ASP.NET Core services exposed to untrusted or multi-tenant 
 ## Files
 
 - `../csharp/references/resilience.md` — Resilience pipelines (single source of truth)
+- `../csharp/references/setups/rate-limiting.md` — Setup: rate limiter registration and Redis backend
 - `../csharp/references/caching.md` — Application caching — hybrid L1/L2 (shared reference)
 - `../csharp/references/ef-core-data-access.md` — EF Core data access — performance & value-object persistence (single source of truth)
 - `../csharp/references/value-object-base.md` — Value Object base type + converters (via nested link)
@@ -69,101 +70,14 @@ Partition key precedence: authenticated user id (`sub`) → API key id (hashed) 
 
 **Partition on the matched route *template*, never the raw path.** Keying on `Request.Path` means `/items/1`, `/items/2`, … each get their own bucket and the effective limit multiplies — a trivial bypass. Read the matched `RouteEndpoint.RoutePattern.RawText` (fall back to the raw path only when no endpoint matched).
 
-Code (.NET 8+ built-in `RateLimiter`):
+Register one named policy per dimension (`burst`, `quota-read`, `quota-write`, `concurrency`) with the built-in .NET 8+ `RateLimiter`, attach them per route with `.RequireRateLimiting(...)`, and soft-ban a principal for 60 s after a second consecutive burst rejection. Registration code, the Redis backend, ban mirror and two-tier limiter: `../csharp/references/setups/rate-limiting.md`.
 
-```csharp
-builder.Services.AddRateLimiter(o =>
-{
-    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    o.OnRejected = async (ctx, ct) =>
-    {
-        ctx.HttpContext.Response.Headers.RetryAfter = "60";
-        await ctx.HttpContext.Response.WriteAsJsonAsync(
-            new ProblemDetails { Status = 429, Title = "Too many requests" },
-            cancellationToken: ct);
-    };
+**Backend rules:**
 
-    // Burst guard: 20 req / 5s per (user, endpoint). Reject (not queue) on overflow.
-    o.AddPolicy("burst", httpContext =>
-    {
-        var userKey = httpContext.User.FindFirst("sub")?.Value
-                      ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                      ?? "anon";
-        // Route TEMPLATE, not raw path — per-id paths must share one bucket.
-        var route = (httpContext.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText
-                    ?? httpContext.Request.Path.ToString();
-        var partition = $"{userKey}|{route}";
-        return RateLimitPartition.GetSlidingWindowLimiter(
-            partition,
-            _ => new SlidingWindowRateLimiterOptions
-            {
-                PermitLimit = 20,
-                Window = TimeSpan.FromSeconds(5),
-                SegmentsPerWindow = 5,
-                QueueLimit = 0,
-            });
-    });
-
-    // Steady read quota per user per hour
-    o.AddPolicy("quota-read", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            httpContext.User.FindFirst("sub")?.Value ?? "anon",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 1_000,
-                Window = TimeSpan.FromHours(1),
-                QueueLimit = 0,
-            }));
-
-    // Concurrency cap per user
-    o.AddPolicy("concurrency", httpContext =>
-        RateLimitPartition.GetConcurrencyLimiter(
-            httpContext.User.FindFirst("sub")?.Value ?? "anon",
-            _ => new ConcurrencyLimiterOptions { PermitLimit = 10, QueueLimit = 0 }));
-});
-
-app.UseRateLimiter();
-```
-
-Endpoint composition:
-
-```csharp
-app.MapPost("/orders", Handler)
-   .RequireRateLimiting("burst")
-   .RequireRateLimiting("quota-write")
-   .RequireRateLimiting("concurrency");
-```
-
-Soft-ban after burst hit: implement a small middleware or `OnRejected` extension that, on the second consecutive rejection within the window, writes `lock:{userKey}:{path}` with TTL 60s into the shared store; a guard middleware short-circuits with 429 while the lock exists.
-
-**Backend choice:**
-
-- **In-memory** (`AddRateLimiter` default) — dev / single-instance only. Each process has its own counter; behind a load balancer the limit is multiplied by N.
-- **Distributed (Redis)** — required for any multi-instance prod deployment. Use a community package such as `RedisRateLimiting`, or wrap `StackExchange.Redis` with a Lua script (`INCR` + `EXPIRE`) for atomicity.
-- **Fail open, not closed.** When Redis is unreachable (`AbortOnConnectFail = false`; guard on `IConnectionMultiplexer.IsConnected`), degrade to a per-node in-memory limiter rather than 429-ing every request — a rate-limiter outage must not become a self-inflicted DoS. Emit a `ratelimit.fallback` counter so the degraded (per-node, multiplied-by-N) state is observable and alertable.
-- **Budget the Redis round-trips.** The naive distributed setup costs **2 Redis round-trips per request** — a ban lookup (`PTTL`) plus the limiter's Lua script. Remove both with two patterns; Redis stays authoritative and fail-open is preserved:
-  - **Local ban mirror + pub/sub.** The hot path reads only a per-node `IMemoryCache` mirror of active bans, so the common case (not banned) costs **0** Redis ops. Banning sets the local entry, `PUBLISH`es on a channel, and writes a TTL key to Redis for durability (never read on the hot path). An `IHostedService` subscribes and mirrors every broadcast into its node's cache. Pub/sub is best-effort — a dropped message or a late-joining node can miss a ban until it is re-armed; acceptable because bans are short and the limiter itself still enforces.
-  - **Two-tier limiter.** A per-node in-memory limiter whose cap **equals the global permit limit** fronts the Redis limiter (a `RateLimiter` subclass composing the library's Redis limiter). A local reject returns without touching Redis — a flood shield. Cap == global means it never false-rejects: one node alone exceeding the global limit means the fleet is over it too. Gate it behind `RateLimiting:LocalPreLimit` (default on, distributed mode only).
-  - **Test isolation:** the local ban mirror and local windows survive a Redis `FLUSHDB`, so state leaks across tests that share one host and the first request spuriously returns 429. In the integration fixture set `LocalPreLimit=false` and have the reset helper also clear the ban mirror's `MemoryCache`; cover the two-tier and hybrid-ban classes with unit tests instead.
-
-```csharp
-// Distributed example (RedisRateLimiting package)
-services.AddRedisRateLimiting(o =>
-{
-    o.ConnectionMultiplexerFactory = sp => sp.GetRequiredService<IConnectionMultiplexer>();
-});
-
-// Hand-rolled sliding window using Redis sorted sets (Lua)
-// KEYS[1]=partition  ARGV[1]=nowMs  ARGV[2]=windowMs  ARGV[3]=permitLimit  ARGV[4]=requestId
-// redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[1] - ARGV[2])
-// local count = redis.call('ZCARD', KEYS[1])
-// if count >= tonumber(ARGV[3]) then return 0 end
-// redis.call('ZADD', KEYS[1], ARGV[1], ARGV[4])
-// redis.call('PEXPIRE', KEYS[1], ARGV[2])
-// return 1
-```
-
-Failed-auth lockout — store fail counter in Redis with TTL 10 min; on the 5th fail, write `auth-lock:{user}:{ip}` with TTL 30 min and reject downstream. Reset on successful login.
+- In-memory is dev and single-instance only: behind a load balancer the limit is multiplied by N. Multi-instance prod needs a distributed store (Redis).
+- **Fail open, not closed.** When Redis is unreachable, degrade to a per-node in-memory limiter rather than 429-ing every request: a rate-limiter outage must not become a self-inflicted DoS. Emit a `ratelimit.fallback` counter so the degraded state is alertable.
+- Budget the Redis round-trips: keep the ban lookup off the hot path with a local mirror, and front the Redis limiter with an equal-cap local limiter (a local reject never touches Redis).
+- Failed-auth lockout: counter in Redis with a 10 min TTL, a 30 min lock on the 5th failure, reset on success.
 
 ## Idempotency
 
@@ -310,7 +224,7 @@ When a value must live in config anyway (connection strings, dev signing keys), 
 - All errors emit `ProblemDetails` (**RFC 9457**, the current problem-details RFC superseding 7807). `application/problem+json`.
 - Implement a global `IExceptionHandler` + `AddProblemDetails`, and use **`CustomizeProblemDetails` to stamp `traceId` + `correlation_id` (+ `instance` = path) on EVERY problem response** — handler-produced and framework-produced (404, 400 model-binding, 415) alike — so all error payloads look identical and are traceable.
 - Production: response carries title, status, traceId, correlation_id. Stack trace and inner exception detail go to logs only, never to the wire.
-- Map known cases: a failed `Result` carrying `ValidationError` → 400 `ValidationProblemDetails` (field→errors) via the single Result → HTTP mapper, not an exception (see `csharp-validation` §3b); any other `Error` → `Problem` with the error's status; **client abort** (cancellation when the client disconnected) → **499**, not 500; `BadHttpRequestException` → its own status.
+- Map known cases: a failed `Result` carrying `ValidationError` → 400 `ValidationProblemDetails` (field→errors) via the single Result → HTTP mapper, not an exception (see `csharp-validation` → Validators run in the pipeline); any other `Error` → `Problem` with the error's status; **client abort** (cancellation when the client disconnected) → **499**, not 500; `BadHttpRequestException` → its own status.
 - `traceId = Activity.Current?.TraceId.ToString()`. Never let DB / framework messages leak.
 
 ## Structured Logging & Audit
@@ -335,7 +249,7 @@ When a value must live in config anyway (connection strings, dev signing keys), 
 - Store outside the webroot; generate server-side filename; never echo client filename in URLs.
 - Re-encode images server-side to strip EXIF and defuse decompression bombs (e.g. ImageSharp with pixel-count cap).
 - Allowlist of `Content-Type`; reject everything else.
-- Per-upload size limit via `[RequestSizeLimit]` (see `csharp-validation` section 6).
+- Per-upload size limit via `[RequestSizeLimit]` (see `csharp-validation` → Serialization and request-size limits).
 
 ## SSRF Defense
 

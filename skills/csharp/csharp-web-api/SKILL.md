@@ -19,6 +19,8 @@ description: Shapes ASP.NET Core endpoints and middleware. Use when writing or e
 
 - `../csharp/references/monads.md` — Monadic error handling — library selection & usage
 - `../csharp/references/mediator.md` — Mediator selection & licensing (single source of truth)
+- `../csharp/references/setups/mediator.md` — Setup: mediator package and registration
+- `../csharp/references/mapping.md` — Object mapping
 - `yusufcirak-skills:csharp-ddd` (`../csharp-ddd/SKILL.md`) — .NET Domain-Driven Design & Architecture
 - `yusufcirak-skills:csharp-hardening` (`../csharp-hardening/SKILL.md`) — Production Hardening (FAANG-level)
 - `yusufcirak-skills:csharp-validation` (`../csharp-validation/SKILL.md`) — ASP.NET Core Input Security & Serialization Limits
@@ -50,7 +52,7 @@ public static class CreateActivityCommand
 **Mediator selection (do this BEFORE scaffolding):** MediatR is commercial from v13. Default to the
 free source-gen **`martinothamar/Mediator`**; the `IRequest<T>`/`IRequestHandler<,>`/`IPipelineBehavior<,>`
 shapes above are identical either way. If no mediator package is present, **ask the user which to
-install**. Full decision rule + AutoMapper→Mapperly mapping guidance: `../csharp/references/mediator.md`.
+install**. Decision rule: `../csharp/references/mediator.md`; install and registration: `../csharp/references/setups/mediator.md`. Object mapping: `../csharp/references/mapping.md`.
 
 ## FluentValidation
 
@@ -99,20 +101,9 @@ public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IQueryable<T
 
 ## Pipeline behaviors (Mediator)
 
-Cross-cutting request rules are **marker interfaces on the request + an open-generic `IPipelineBehavior`**, registered once in the host (`Mediator.SourceGenerator` only generates `AddMediator()` in the outermost project — see `../csharp/references/mediator.md`). Declared order is the execution order, and the lifetime is **Scoped**, not the library default Singleton (handlers take scoped `DbContext`s; a Singleton holding one is a captive dependency):
+Cross-cutting request rules are **marker interfaces on the request + an open-generic `IPipelineBehavior`**, registered once in the host (`AddMediator()` is generated only in the outermost project). Declared order is the execution order, and the lifetime is **Scoped**, not the library default Singleton (handlers take scoped `DbContext`s; a Singleton holding one is a captive dependency):
 
-```csharp
-builder.Services.AddMediator(o =>
-{
-    o.ServiceLifetime = ServiceLifetime.Scoped;
-    o.PipelineBehaviors =
-    [
-        typeof(SensitiveRequestBehavior<,>), // re-verify caller (if ISensitiveRequest)
-        typeof(ValidationBehavior<,>),       // then validate (yusufcirak-skills:csharp-validation §3b)
-        typeof(LockBehavior<,>),             // then acquire the distributed lock (if ILockRequest)
-    ];
-});
-```
+Register the behaviors in this declared order (the first is outermost): `SensitiveRequestBehavior<,>` (re-verify caller if `ISensitiveRequest`), `ValidationBehavior<,>` (`yusufcirak-skills:csharp-validation` → Validators run in the pipeline), `LockBehavior<,>` (acquire the distributed lock if `ILockRequest`). Registration code: `../csharp/references/setups/mediator.md`.
 
 - **`ISensitiveRequest` → `SensitiveRequestBehavior`**: for change-password / revoke-sessions / delete-account commands. Re-verifies at handler time that the caller is authenticated (`ICurrentUser.IsAuthenticated`) and that the token's `jti` is not on `ITokenBlacklist`; either failure returns a 401 `Error` through the Result channel (no exception). Defense-in-depth beyond the one-time edge check, and it also guards commands dispatched outside an HTTP request.
 - **`ILockRequest` → `LockBehavior`**: single-flight by `LockKey` (default `LockExpiration` 30 s, overridable on the request). `IDistributedLock.AcquireAsync` is a non-blocking try-acquire returning `null` when held; the loser gets a 409 `lock.conflict` `Result`, never queues. Use for genuinely exactly-once operations (concurrent duplicate commands the idempotency filter cannot serialize). The default registration is a **fail-loud** `UnconfiguredDistributedLock` (`TryAddSingleton`) that throws `InvalidOperationException` when an `ILockRequest` is dispatched without Redis — it never silently runs unlocked; `AddRedisLocking()` overrides it (Medallion `DistributedLock.Redis`, auto-renewing handle).

@@ -4,36 +4,17 @@
 
 - Decision rule
 - API parity (why the swap is cheap)
-- Object mapping — no reflection mappers
-- Unified alternative — Wolverine
 - Related
 
 > Requires .NET 8+. Owns the **which-mediator** decision for `yusufcirak-skills:csharp-web-api` and `yusufcirak-skills:csharp-validation`.
 
-MediatR, AutoMapper, and MassTransit moved to **commercial/paid licensing** (MediatR v13+,
-AutoMapper v15+, MassTransit v9+, during 2024–2025; free only under a revenue threshold). The skills
-no longer assume MediatR is free. The reference codebase (TicketMaster) runs the source-generated
-**`Mediator` 3.0.2** (`Mediator.Abstractions` + `Mediator.SourceGenerator`); it replaced a pinned
-MediatR 12.x in a refactor, so the samples in these skills use the `Mediator` shapes. Pick the mediator
-**before scaffolding a handler**:
+MediatR, AutoMapper and MassTransit moved to commercial licensing (MediatR v13+, AutoMapper v15+, MassTransit v9+). Prefer the source-generated, Apache-2.0 **`Mediator`** (`martinothamar/Mediator`): same handler shapes, no per-seat cost. Keep an existing free MediatR (v12 or older). Never add a licensed package silently: if no mediator is referenced, ask the user which to install before writing the slice.
 
-## Decision rule
-
-1. Inspect the project's package references.
-2. **`Mediator` (`martinothamar/Mediator`)** present → **preferred**. Source-generated, Apache-2.0, no
-   per-seat cost, near drop-in API.
-3. **`MediatR` ≤ v12** present → acceptable (still free); keep existing patterns.
-4. **`MediatR` ≥ v13** present → **licensed**. Confirm the team holds a license; otherwise propose
-   migrating to `Mediator`.
-5. **No mediator package** present → **ASK THE USER which to install** (`Mediator` recommended) before
-   writing the slice. Do not silently add a licensed package.
+Package choice flow, registration, lifetime and pipeline order: `setups/mediator.md`.
 
 ## API parity (why the swap is cheap)
 
-The handler/behavior contracts are the same shape, so the slice skeleton (`yusufcirak-skills:csharp-web-api`) is reused
-almost verbatim. The differences are mechanical: `Mediator` handlers and behaviors return `ValueTask`,
-a behavior's `next` is a `MessageHandlerDelegate<TRequest, TResponse>` called as `next(request, ct)`, and
-behaviors constrain on the `IMessage` marker:
+The handler and behavior contracts have the same shape, so the slice skeleton (`yusufcirak-skills:csharp-web-api`) is reused almost verbatim. `Mediator` handlers and behaviors return `ValueTask`, a behavior's `next` is a `MessageHandlerDelegate<TRequest, TResponse>` called as `next(request, ct)`, and behaviors constrain on the `IMessage` marker:
 
 ```csharp
 public sealed record CreateActivity(...) : IRequest<Result<ActivityId>>;
@@ -47,48 +28,6 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
     public ValueTask<TResponse> Handle(TRequest request, MessageHandlerDelegate<TRequest, TResponse> next, CancellationToken ct) { /* ... */ }
 }
 ```
-
-Registration differs:
-
-```csharp
-// martinothamar/Mediator (source-gen) — preferred. Scoped, not the library default Singleton: handlers take
-// scoped EF DbContexts, and a Singleton handler holding one is a captive-dependency bug.
-builder.Services.AddMediator(o =>
-{
-    o.ServiceLifetime = ServiceLifetime.Scoped;
-    o.PipelineBehaviors = [typeof(SensitiveRequestBehavior<,>), typeof(ValidationBehavior<,>), typeof(LockBehavior<,>)]; // declared order
-});
-
-// MediatR (≤ v12, free) — acceptable
-builder.Services.AddMediatR(c => c.RegisterServicesFromAssembly(typeof(Program).Assembly)
-    .AddOpenBehavior(typeof(ValidationBehavior<,>)));
-```
-
-`Mediator.SourceGenerator` only generates `AddMediator()` in the **outermost** project (the host), so a
-library cannot register the mediator itself; with `Assemblies` left unset it discovers handlers across every
-referenced assembly. The full `ValidationBehavior<,>` (failed `Result`, no exception) is in
-`yusufcirak-skills:csharp-validation` §3b; the other pipeline behaviors (`ILockRequest`/`LockBehavior`,
-`ISensitiveRequest`/`SensitiveRequestBehavior`) and their order are in `yusufcirak-skills:csharp-web-api` → Pipeline behaviors.
-
-## Object mapping — no reflection mappers
-
-AutoMapper is commercial **and** reflection-based. Use **`riok/Mapperly`** (source-gen, free,
-zero-alloc, compile-time-checked) or hand-written mapping. Never add reflection AutoMapper to new code.
-
-```csharp
-[Mapper]
-public partial class ActivityMapper
-{
-    public partial ActivityResponse ToResponse(Activity activity); // generated at build time
-}
-```
-
-## Unified alternative — Wolverine
-
-For greenfield services that want **mediator + messaging + outbox in one** free (Apache-2.0,
-source-gen) package, **JasperFx/Wolverine** replaces MediatR **and** MassTransit. Handlers are plain
-methods; `IMessageBus.PublishAsync` carries the durable outbox. Consider it when the licensing of both
-MediatR and MassTransit is in play; otherwise the `Mediator` + existing outbox guidance is sufficient.
 
 ## Related
 

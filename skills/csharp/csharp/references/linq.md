@@ -12,34 +12,7 @@ Load when aggregating, projecting, joining, or correlating collections, or when 
 - Reach for `foreach` only when the body has side effects (I/O, mutation of external state, logging, `await` per item without `await foreach`), or when LINQ would force materialization that hurts performance.
 - Keep LINQ pipelines pure; keep captured state read-only inside `Select`/`Where`.
 - Pair with `IEnumerable<T>` / `IAsyncEnumerable<T>` (see `performance.md`); materialize with `ToList()` only when a caller needs random access or multiple enumerations.
-- **Zero-allocation LINQ (check before writing):** if the project already references **ZLinq** (Cysharp) — check `.csproj`/`Directory.Packages.props` — use it; its struct-based drop-in removes the usual "LINQ allocates, so drop to a loop on hot paths" trade-off, so LINQ stays the default even in measured-hot code. If the project uses a different zero-alloc LINQ approach, match it. If neither is present, plain `System.Linq` is fine for cold paths — but when a change touches a per-request/per-record/per-message LINQ chain (the Hot-path allocation discipline cases below), **proactively suggest adding ZLinq** there rather than quietly dropping to a manual loop; ask before adding the package.
-
-### ZLinq drop-in setup (when ZLinq is the project's choice)
-
-Install ZLinq as a **drop-in** so call sites keep plain LINQ syntax — no `.AsValueEnumerable()` chaining:
-
-```bash
-dotnet add package ZLinq
-dotnet add package ZLinq.DropInGenerator
-```
-
-The source generator emits extension methods that take overload priority over `System.Linq` for the selected target types, so the ZLinq method is picked whenever name and arguments match. Configure it with one assembly attribute:
-
-```csharp
-// New project — most aggressive: everything (incl. IEnumerable<T>) routes through ZLinq.
-// Generate into the app's default namespace, NOT global (""): with Enumerable included,
-// a global drop-in makes normal System.Linq unreachable; a namespaced one lets a file
-// opt back into System.Linq by not importing that namespace.
-[assembly: ZLinq.ZLinqDropInAttribute("MyApp", ZLinq.DropInGenerateTypes.Everything)]
-
-// Legacy/existing project — use Collection (Array | Span | Memory | List), NOT Everything:
-// the Enumerable drop-in returns ValueEnumerable where existing code expects IEnumerable<T>
-// (a real problem on net9+), so it breaks existing call sites. Without Enumerable,
-// `.AsEnumerable()` stays available as the System.Linq escape hatch.
-[assembly: ZLinq.ZLinqDropInAttribute("MyApp", ZLinq.DropInGenerateTypes.Collection)]
-```
-
-`DropInGenerateTypes` is a flags enum — `Array`, `Span` (Span/ReadOnlySpan), `Memory` (Memory/ReadOnlyMemory), `List`, `Enumerable` (IEnumerable), combinable (`Array | Span`), with predefined combos `Collection = Array | Span | Memory | List` and `Everything = Collection | Enumerable`. Where the drop-in isn't configured (a quick script, someone else's repo), chain `.AsValueEnumerable()` manually before the operators.
+- **Zero-allocation LINQ (check before writing):** if the project already references **ZLinq** (Cysharp) — check `.csproj`/`Directory.Packages.props` — use it; its struct-based drop-in removes the usual "LINQ allocates, so drop to a loop on hot paths" trade-off, so LINQ stays the default even in measured-hot code. If the project uses a different zero-alloc LINQ approach, match it. If neither is present, plain `System.Linq` is fine for cold paths — but when a change touches a per-request/per-record/per-message LINQ chain (the Hot-path allocation discipline cases below), **proactively suggest adding ZLinq** there rather than quietly dropping to a manual loop; ask before adding the package. Install and drop-in configuration: `setups/optional-libraries.md`.
 
 Example — aggregating order totals per customer with line items from a separate source:
 

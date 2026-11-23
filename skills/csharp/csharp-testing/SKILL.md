@@ -7,23 +7,33 @@ description: Sets the C# testing standard. Use when writing, editing, reviewing,
 
 ## Contents
 
-- Recommended stack (new projects; match the existing one otherwise)
-- Project layout & naming
-- Asserting on monads → `../csharp/references/monads.md`
-- Unit tests → `yusufcirak-skills:csharp`
-- Test data — Bogus builders
-- Integration tests — Testcontainers → `yusufcirak-skills:csharp-hardening`
-- Testing middleware & Activity/baggage
-- Auth integration tests
-- Architecture tests (DDD boundaries) → `yusufcirak-skills:csharp-ddd`
-- Coverage / CI → `yusufcirak-skills:csharp-hardening`
-- LLM & security tests
-- Anti-patterns (forbidden)
+- What we require
+  - What to test and at which level
+  - Structure & naming
+  - Asserting on monads → `../csharp/references/monads.md`
+  - Doubles, time and data
+  - Real dependencies for integration tests
+  - Architecture rules
+  - Coverage / CI → `yusufcirak-skills:csharp-hardening`
+  - LLM & security tests
+  - Anti-patterns (forbidden)
+- .NET tooling and patterns
+  - Stack → `../csharp/references/setups/testing-stack.md`
+  - Unit test shape
+  - FakeTimeProvider → `yusufcirak-skills:csharp`
+  - Bogus builders
+  - Testcontainers fixture
+  - API-level integration and the shared spine
+  - Optimistic concurrency
+  - Middleware & Activity/baggage
+  - Auth integration tests
+  - NetArchTest → `yusufcirak-skills:csharp-ddd`
 - Related skills → `yusufcirak-skills:csharp`, `yusufcirak-skills:csharp-ddd`, `yusufcirak-skills:csharp-web-api`, `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-hardening`, `yusufcirak-skills:csharp-observability`
 
 ## Files
 
-- `../csharp/references/monads.md` — Monadic error handling — library selection & usage
+- `../csharp/references/setups/testing-stack.md` — Setup: test project and package stack
+- `../csharp/references/monads.md` — Monadic error handling (Railway Oriented Programming)
 - `yusufcirak-skills:csharp` (`../csharp/SKILL.md`) — C# House Style
 - `yusufcirak-skills:csharp-hardening` (`../csharp-hardening/SKILL.md`) — Production Hardening (FAANG-level)
 - `yusufcirak-skills:csharp-ddd` (`../csharp-ddd/SKILL.md`) — .NET Domain-Driven Design & Architecture
@@ -31,28 +41,84 @@ description: Sets the C# testing standard. Use when writing, editing, reviewing,
 - `yusufcirak-skills:csharp-validation` (`../csharp-validation/SKILL.md`) — ASP.NET Core Input Security & Serialization Limits
 - `yusufcirak-skills:csharp-observability` (`../csharp-observability/SKILL.md`) — Observability (OpenTelemetry-native, FAANG-level)
 
-The user's personal testing rules — test project layout & naming, `Method_State_Expectation` naming, AAA structure, asserting on `Result<T>`/`Option<T>` monads, unit-vs-integration split, `ICollectionFixture` Testcontainers base class, and DDD layer-boundary enforcement. **Check the project first** (existing test projects' package references): if it already has a test framework/assertion/mocking library, keep using it — these rules are about structure and discipline (naming, AAA, monad assertions, real-dependency integration tests), not about forcing a library swap. On a **new** test project with no existing convention, the recommended default stack is xUnit + Shouldly + NSubstitute + Testcontainers + Respawn + Bogus + NetArchTest (see table below) — propose it and confirm before adding packages the project doesn't have yet. Apply alongside `csharp` (records/monads/idioms). Production-grade CI/SAST/DAST/mutation gates live in `csharp-hardening` → CI/Test Security; this skill governs how tests themselves are written.
+Every new feature or change to existing behavior ships with tests that prove the rules it holds, against real dependencies wherever a fake could hide the bug. The first half of this skill is what we require from tests, whatever the framework. The second half is the .NET tooling and the patterns we use. These rules are about structure and discipline, not about forcing a library swap: check the project's existing test packages first and keep them. Apply alongside `csharp` (records, monads, idioms). CI/SAST/DAST/mutation gates live in `csharp-hardening` → CI/Test Security; this skill governs how tests themselves are written.
 
-## Recommended stack (new projects; match the existing one otherwise)
+## What we require
 
-| Concern | Library | Note | Common alternatives |
-|---|---|---|---|
-| Test framework | **xUnit** | `[Fact]` / `[Theory]` + `[InlineData]`/`[MemberData]`/`[ClassData]`. | NUnit, MSTest — same AAA/naming rules apply. |
-| Assertions | **Shouldly** | `result.ShouldBe(x)`. Free/OSS, expressive failure messages. | FluentAssertions, or bare `Assert.*` for the chosen framework. |
-| Mocking | **NSubstitute** | `Substitute.For<T>()`. Mock **outbound ports only** (HttpClient handlers, brokers, clocks) — never the domain, regardless of library. | Moq, FakeItEasy. |
-| Integration infra | **Testcontainers** | Real Postgres/Redis/etc. via Docker. No in-memory provider for DB-bound tests — this rule holds independent of library choice. | — |
-| DB reset | **Respawn** | Truncate between integration tests instead of recreating the container. | Hand-rolled truncate script. |
-| Test data | **Bogus** | Seeded `Faker<T>`; wrapped in factory-based builders / Object Mother. Deterministic. | AutoFixture, hand-written builders. |
-| Architecture | **NetArchTest** | Enforce DDD layer boundaries. | `ArchUnitNET`. |
-| Coverage | **coverlet** | Collected in CI; threshold gate (see CI section). | Built-in VSTest coverage collector. |
+### What to test and at which level
 
-## Project layout & naming
+- **Unit tests** cover domain behavior through factories and methods, because they hold the rules. Pure and fast.
+- **Integration tests** cover everything a fake cannot prove: real database behavior, constraints, concurrency, HTTP envelopes (`ProblemDetails` shape, security headers, the `429` envelope), auth, messaging.
+- **Architecture tests** enforce layer boundaries and fail the build on a violation.
+- A bug fix starts with a test that fails for the bug.
 
-- One test project per production project: `<Project>.UnitTests`, `<Project>.IntegrationTests`, plus a single solution-wide `Architecture.Tests`.
-- Mirror the namespace/folder structure of the system under test.
-- Test class: `<TypeUnderTest>Tests` (unit) — one class per SUT.
+### Structure & naming
+
+- One test project per production project: `<Project>.UnitTests`, `<Project>.IntegrationTests`, plus one solution-wide `Architecture.Tests`.
+- Mirror the namespace and folder structure of the system under test. One test class per SUT, named `<TypeUnderTest>Tests`.
 - Test method: **`Method_State_Expectation`**, e.g. `Create_WhenValueExceedsMax_ReturnsFailure`.
-- AAA layout with blank-line separation; no comments needed when sections are obvious.
+- Arrange / Act / Assert with blank-line separation; no comments when the sections are obvious.
+- One logical assertion per test (chained assertions on one subject are fine).
+
+### Asserting on monads
+
+Domain factories and handlers return `Result<T>` / `Option<T>` (see `../csharp/references/monads.md`). Assert on the monad, never via try/catch:
+
+- Success: assert `IsSuccess` first, then the value. Asserting on `result.Value` without it hides the real failure behind a null reference.
+- Failure: assert `IsFailure`, then the error.
+- `Option<T>`: assert `HasValue` / `IsNone`, then the value.
+- Exceptions are an expectation only for genuinely exceptional paths.
+
+### Doubles, time and data
+
+- Test doubles only for **outbound side-effect ports** (email sender, `HttpMessageHandler`, message bus). Pure domain services take real instances. Never mock the domain, or types you own that have no side effects: construct them.
+- Time comes from an injected `TimeProvider` (`FakeTimeProvider` in tests), never `DateTime.Now` or a mocked clock.
+- Test data is deterministic: seeded fakers, built through the production factory so invariants hold, wrapped in builders so call sites read intent.
+
+### Real dependencies for integration tests
+
+- Real infrastructure in containers. No in-memory or SQLite stand-in for database-bound behavior; they have no unique constraints or `xmin`, so they cannot test concurrency or constraint handling.
+- One shared set of containers per test assembly, started once, never per class. State is reset between tests, not by recreating containers.
+- Every test that touches I/O passes a `CancellationToken`.
+- Assert the real HTTP behavior the hardening rules promise: `ProblemDetails` shape, security headers, `429` envelope (see `csharp-hardening`).
+- Auth endpoints get the full matrix: no token returns 401 (`application/problem+json`), a valid token without the required scope returns 403, a correctly scoped token returns 200.
+
+### Architecture rules
+
+One `Architecture.Tests` project enforces the layering from `csharp-ddd`. Minimum rules: Domain depends on nothing outward; Application never references Infrastructure types directly; Contracts stay DTO and interface only; modules do not reference each other's internals (only `*.Contracts`).
+
+### Coverage / CI
+
+- Line and branch coverage collected in CI, gate default at least 80% on changed projects (tune per repo).
+- Tests run on every PR; integration tests need Docker on the runner.
+- Mutation testing on critical domain paths is owned by `csharp-hardening` → CI/Test Security.
+
+### LLM & security tests
+
+- **Test both corpora.** A guard that blocks every attack but also blocks legitimate input is broken: keep an adversarial set (including the original pentest and bug payloads) and a benign set with look-alikes ("system number", "IBAN") to catch false positives.
+- **Prove the fix matters.** Run the same payloads against the pre-fix behavior (legacy prompt or format) as an informational baseline, so "blocked" is compared with "was exploitable".
+- **An escape hatch must check its reason.** A test that tolerates a refusal may accept only that specific outcome (the refusal marker). A generic failure (bad key, timeout, 500) must fail the test, otherwise it passes vacuously.
+- **Real-provider tests are opt-in**: `[Trait("Category","Integration")]`, skipped unless the environment provides credentials; keys live in memory only and are never printed or written. Assert invariants (field names, blocked or allowed, bounds), not exact model text.
+- **Repeat after every prompt or policy change.** Model output is not deterministic even at temperature 0; run the corpus several times and tighten the policy text, not the assertion.
+- **Fake the transport, not the logic.** Unit-test request construction with a fake `HttpMessageHandler`: system turn is the trusted policy, user turn is the wrapped state, temperature, seed, schema name and model are what you intend, tags injected by the state never escape their block, and cache hit, miss, outage and every failure path behave as specified.
+
+### Anti-patterns (forbidden)
+
+- EF in-memory or SQLite standing in for the real database in DB-bound tests.
+- Mocking domain entities or value objects, or concrete types you own with no side effects.
+- `Thread.Sleep` for async timing: await the real signal or poll with a bounded timeout.
+- Shared mutable state between tests, order-dependent tests.
+- Asserting on `result.Value` without first asserting `IsSuccess`.
+- Non-deterministic data: unseeded `Bogus`, `DateTime.Now`, `Guid.NewGuid()` in assertions.
+- Logic in tests (loops or conditionals deciding the assertion): prefer `[Theory]` data.
+
+## .NET tooling and patterns
+
+### Stack
+
+Default for a new test project with no convention: xUnit + Shouldly + NSubstitute + Testcontainers + Respawn + Bogus + NetArchTest + coverlet. Propose it and confirm before adding packages. Table, alternatives and layout: `../csharp/references/setups/testing-stack.md`.
+
+### Unit test shape
 
 ```csharp
 public sealed class ShortTextFactoryTests
@@ -79,24 +145,11 @@ public sealed class ShortTextFactoryTests
 }
 ```
 
-## Asserting on monads
+Exceptions on genuinely exceptional paths: `Should.Throw<T>(() => ...)`.
 
-Domain factories/handlers return `Result<T>`/`Option<T>` (see `../csharp/references/monads.md`). Assert on the monad, never via try/catch:
+### FakeTimeProvider
 
-- Success: `result.IsSuccess.ShouldBeTrue();` then `result.Value.ShouldBe(...)`.
-- Failure: `result.IsFailure.ShouldBeTrue();` then assert the error.
-- `Option<T>`: assert `HasValue` / `IsNone`, then the value.
-- Exceptions are an expectation only for genuinely exceptional paths: `Should.Throw<T>(() => ...)`.
-
-## Unit tests
-
-- Test domain behavior through factories and methods — they hold the rules.
-- Inject test doubles **only for outbound side-effect ports** (`IEmailSender`, `HttpMessageHandler`, message bus). Pure domain services take real instances. For time, inject `FakeTimeProvider` (not a mock).
-- No mocking of types you own that have no side effects — construct them.
-- One logical assertion per test (Shouldly chains on one subject are fine).
-
-Use **`FakeTimeProvider`** (`Microsoft.Extensions.TimeProvider.Testing`) for time — not a mocked
-`IClock`. It advances deterministically and is what production `TimeProvider` (see `csharp`) expects.
+`FakeTimeProvider` (`Microsoft.Extensions.TimeProvider.Testing`) advances deterministically and is what production `TimeProvider` (see `csharp`) expects. Use it instead of a mocked `IClock`.
 
 ```csharp
 var time = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
@@ -107,9 +160,9 @@ var result = Subscription.Renew(time);
 result.IsSuccess.ShouldBeTrue();
 ```
 
-## Test data — Bogus builders
+### Bogus builders
 
-Wrap `Bogus.Faker<T>` in a builder / Object Mother so call sites read intent, not field soup. **Seed the faker** for determinism. Build through the production factory so invariants hold.
+Wrap `Bogus.Faker<T>` in a builder or Object Mother, seed the faker, and build through the production factory.
 
 ```csharp
 public sealed class CustomerBuilder
@@ -128,9 +181,9 @@ public sealed class CustomerBuilder
 }
 ```
 
-## Integration tests — Testcontainers
+### Testcontainers fixture
 
-Real dependencies in Docker. No EF in-memory / SQLite substitute for Postgres-bound behavior. Share one container across a collection; reset state per test with Respawn.
+Share one container across a collection and reset state per test with Respawn.
 
 ```csharp
 public sealed class PostgresFixture : IAsyncLifetime
@@ -173,18 +226,17 @@ public abstract class IntegrationTestBase(PostgresFixture fixture) : IAsyncLifet
 }
 ```
 
-- API-level integration uses `WebApplicationFactory<TEntryPoint>`; inject the container connection strings + any config via `host.UseSetting("Section:Key", value)`.
-- Kafka / Redis (and a Debezium connect container, when the outbox pipeline is under test) follow the same `IAsyncLifetime` fixture pattern as Postgres.
-- Set `OTEL_SDK_DISABLED=true` in the factory so exporters don't dial a dead `localhost:4317` (connection-refused noise + shutdown flush delay).
-- Assert real HTTP behavior the hardening rules promise: `ProblemDetails` shape, security headers, `429` envelope (see `csharp-hardening`).
-- Every test that touches I/O passes a `CancellationToken`.
+### API-level integration and the shared spine
 
-**One shared spine per assembly** — start Postgres+Redis+Kafka **once** for the whole test assembly, not per class. Starting a container set per class is wasteful and slow.
+- API-level integration uses `WebApplicationFactory<TEntryPoint>`; inject container connection strings and config via `host.UseSetting("Section:Key", value)`.
+- Kafka, Redis (and a Debezium Connect container when the outbox pipeline is under test) follow the same `IAsyncLifetime` fixture pattern as Postgres.
+- Set `OTEL_SDK_DISABLED=true` in the factory so exporters do not dial a dead `localhost:4317` (connection-refused noise and a shutdown flush delay).
+- **One shared spine per assembly**: start Postgres, Redis and Kafka once for the whole test assembly.
 
 ```csharp
 [CollectionDefinition(Name)]
 public sealed class IntegrationCollection : ICollectionFixture<SpineFixture> { public const string Name = "integration"; }
-// Every integration test class carries [Collection(IntegrationCollection.Name)] → shares the one container set.
+// Every integration test class carries [Collection(IntegrationCollection.Name)] and shares the one container set.
 // Collection tests run SEQUENTIALLY, so a rate-limit-sensitive test can flush Redis first and stay isolated:
 public async Task ResetRedisAsync() {
     await using var mux = await ConnectionMultiplexer.ConnectAsync($"{RedisConnectionString},allowAdmin=true");
@@ -192,21 +244,23 @@ public async Task ResetRedisAsync() {
 }
 ```
 
-**Optimistic concurrency needs a real database.** InMemory has no unique constraints and no `xmin`, so it *cannot* test this — a concrete case of the "no EF in-memory" anti-pattern below. Two scopes, two contexts, one row:
+### Optimistic concurrency
+
+Needs a real database, because InMemory has no unique constraints and no `xmin`. Two scopes, two contexts, one row:
 
 ```csharp
 var a = scopeA.ServiceProvider.GetRequiredService<AppDbContext>();
 var b = scopeB.ServiceProvider.GetRequiredService<AppDbContext>();
 var ra = await a.Set<Order>().SingleAsync(x => x.Id == id);
 var rb = await b.Set<Order>().SingleAsync(x => x.Id == id);
-ra.Rename("A"); await a.SaveChangesAsync();   // first writer wins — Postgres advances xmin
+ra.Rename("A"); await a.SaveChangesAsync();   // first writer wins, Postgres advances xmin
 rb.Rename("B");
-await Should.ThrowAsync<DbUpdateConcurrencyException>(() => b.SaveChangesAsync()); // stale xmin → rejected
+await Should.ThrowAsync<DbUpdateConcurrencyException>(() => b.SaveChangesAsync()); // stale xmin is rejected
 ```
 
-## Testing middleware & Activity/baggage
+### Middleware & Activity/baggage
 
-Middleware that reads/sets `Activity.Current` (correlation id, baggage enrichment) is tested with a `DefaultHttpContext` + a live `ActivityListener` — no host needed.
+Middleware that reads or sets `Activity.Current` (correlation id, baggage enrichment) is tested with a `DefaultHttpContext` and a live `ActivityListener`, no host needed.
 
 ```csharp
 private static ActivityListener StartListening()
@@ -238,9 +292,9 @@ public async Task Stamps_user_id_on_baggage_when_authenticated()
 }
 ```
 
-## Auth integration tests
+### Auth integration tests
 
-For JWT-protected endpoints, mint a token in-test that the booted app accepts. Configure the app for **symmetric (HS256)** in the factory (`UseSetting` the issuer/audience/signing key) and sign with the same key:
+For JWT-protected endpoints, mint a token in-test that the booted app accepts. Configure the app for symmetric (HS256) in the factory (`UseSetting` the issuer, audience and signing key) and sign with the same key:
 
 ```csharp
 public string MintToken(params string[] scopes)
@@ -257,11 +311,7 @@ public string MintToken(params string[] scopes)
 }
 ```
 
-Assert the matrix: no token → **401** (`application/problem+json`); valid token without the required scope → **403**; correctly-scoped token → **200**.
-
-## Architecture tests (DDD boundaries)
-
-One `Architecture.Tests` project enforcing the layering from `csharp-ddd`. Fail the build on violation.
+### NetArchTest
 
 ```csharp
 [Fact]
@@ -276,44 +326,6 @@ public void Domain_ShouldNotDependOn_InfrastructureOrApplication()
         $"violations: {string.Join(", ", result.FailingTypeNames ?? [])}");
 }
 ```
-
-Minimum rules: Domain depends on nothing outward; Application never references Infrastructure types directly; Contracts stay DTO/interface-only; modules don't reference each other's internals (only `*.Contracts`).
-
-## Coverage / CI
-
-- coverlet collects line + branch coverage; CI gate (default ≥ 80% on changed projects, tune per repo).
-- Tests run in CI on every PR; integration tests need Docker available on the runner.
-- Mutation testing (`Stryker.NET`) on critical domain paths — owned by `csharp-hardening` → CI/Test Security.
-
-## LLM & security tests
-
-- **Test both corpora.** A guard that blocks every attack but also blocks legitimate input is broken: keep an
-  adversarial set (including the original pentest/bug payloads) **and** a benign set with look-alikes
-  ("system number", "IBAN") to catch false positives.
-- **Prove the fix matters.** Run the same payloads against the pre-fix behavior (legacy prompt/format) as an
-  informational baseline test, so "blocked" is compared with "was exploitable".
-- **An escape hatch must check its reason.** A test that tolerates a refusal/denial may only accept that *specific*
-  outcome (the refusal marker); a generic failure — bad key, timeout, 500 — must fail the test, otherwise it passes
-  vacuously.
-- **Real-provider tests are opt-in**: `[Trait("Category","Integration")]`, skipped unless the environment provides
-  credentials (or the app's own secret provider is enabled by a flag); keys live in memory only and are never
-  printed or written. Assert invariants (field names, blocked/allowed, bounds), not exact model text.
-- **Repeat after every prompt/policy change.** Model output is not deterministic even at temperature 0; a regression
-  can show on the second run (one payload slipped through after a format change) — run the corpus several times
-  and tighten the policy text, not the assertion.
-- **Fake the transport, not the logic.** Unit-test request construction with a fake `HttpMessageHandler`: system turn
-  == trusted policy, user turn == the wrapped state, temperature/seed/schema name/model are what you intend, tags
-  injected by the state never escape their block, cache hit/miss/outage and every failure path behave as specified.
-
-## Anti-patterns (forbidden)
-
-- EF in-memory or SQLite standing in for the real database in DB-bound tests — use Testcontainers.
-- Mocking domain entities/value objects, or mocking concrete types you own with no side effects.
-- `Thread.Sleep` for async timing — await the real signal / use polling with a bounded timeout.
-- Shared mutable state between tests; order-dependent tests. Each test is isolated (Respawn handles DB).
-- Asserting on `result.Value` without first asserting `IsSuccess` (NRE hides the real failure).
-- Non-deterministic data: unseeded `Bogus`, `DateTime.Now`, `Guid.NewGuid()` in assertions — inject `TimeProvider` (`FakeTimeProvider` in tests), seed fakers.
-- Logic in tests (loops/conditionals deciding the assertion) — prefer `[Theory]` data.
 
 ## Related skills
 

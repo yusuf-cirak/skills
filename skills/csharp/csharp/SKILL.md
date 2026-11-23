@@ -1,14 +1,13 @@
 ---
 name: csharp
-description: Applies the C# house style and routes to the sibling skills. ALWAYS use before writing, editing, or reviewing any C#/.NET code, including every new feature, endpoint, handler, consumer or job, since it carries the golden paths (hardening, logging, concurrency, security, errors, caching, resilience, testing) that apply even when the user did not ask for them. Use before writing, editing, or reviewing any C#/.NET code (`.cs`, `.csproj`, `.slnx`, `Directory.Packages.props`) and for questions about C# idioms or the coding standards. Entry point to the csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability, and csharp-testing skills.
+description: Applies the C# house style and routes to the sibling skills. ALWAYS use before writing, editing, or reviewing any C#/.NET code (`.cs`, `.csproj`, `.slnx`, `Directory.Packages.props`), including every new feature, endpoint, handler, consumer or job, and for questions about C# idioms. Entry point that routes to csharp-ddd, csharp-web-api, csharp-validation, csharp-hardening, csharp-observability and csharp-testing.
 ---
-
 # C# House Style
 
 ## Contents
 
-- Golden paths (apply to every feature)
 - Route first → `yusufcirak-skills:csharp-ddd`, `yusufcirak-skills:csharp-web-api`, `yusufcirak-skills:csharp-validation`, `yusufcirak-skills:csharp-hardening`, `yusufcirak-skills:csharp-observability`, `yusufcirak-skills:csharp-testing`
+- Then load references → every file under `references/` (table)
 - Namespaces & file organization
 - Async methods → `references/async-concurrency.md`
 - Immutability & records
@@ -20,25 +19,35 @@ description: Applies the C# house style and routes to the sibling skills. ALWAYS
 - Time → `yusufcirak-skills:csharp-testing`
 - Outbound HTTP → `references/resilience.md`, `yusufcirak-skills:csharp-hardening`
 - Constants → `yusufcirak-skills:csharp-validation`
-- References — load when → `references/linq.md`, `references/performance.md`, `references/async-concurrency.md`, `references/composition.md`, `references/state-as-types.md`, `references/value-object-base.md`, `references/monads.md`, `references/ef-core-data-access.md`, `references/mediator.md`, `references/resilience.md`, `references/root-client.md`, `references/caching.md`, `references/input-limits.md`, `references/build-and-analyzers.md`, `references/outbox-debezium-masstransit.md`
 - Decision notes
 
 ## Files
 
 - `references/state-as-types.md` — State as types — polymorphic state machines (no boolean flags)
 - `references/value-object-base.md` — Value Object base type + converters
-- `references/monads.md` — Monadic error handling — library selection & usage
+- `references/monads.md` — Monadic error handling (Railway Oriented Programming)
 - `references/linq.md` — C# LINQ
 - `references/performance.md` — C# Performance
 - `references/async-concurrency.md` — C# Async, Concurrency & Background Work
 - `references/composition.md` — C# Composition: Options, Extensions, DI, Library Surface
 - `references/ef-core-data-access.md` — EF Core data access — performance & value-object persistence (single source of truth)
 - `references/mediator.md` — Mediator selection & licensing (single source of truth)
+- `references/mapping.md` — Object mapping
+- `references/setups/mediator.md` — Setup: mediator package and registration
+- `references/setups/monads.md` — Setup: Result/Option library selection
+- `references/setups/caching.md` — Setup: hybrid cache library
+- `references/setups/resilience.md` — Setup: Polly v8 packages and pipelines
+- `references/setups/outbox.md` — Setup: Debezium connector and polling relay
+- `references/setups/build-analyzers.md` — Setup: analyzers, generators, build props
+- `references/setups/observability.md` — Setup: OpenTelemetry registration
+- `references/setups/rate-limiting.md` — Setup: rate limiter and Redis backend
+- `references/setups/testing-stack.md` — Setup: test project and package stack
+- `references/setups/optional-libraries.md` — Setup: ZLinq, ZString, Mapperly, Ardalis.GuardClauses
 - `references/resilience.md` — Resilience pipelines (single source of truth)
 - `references/root-client.md` — Root client + typed sub-clients
 - `references/caching.md` — Application caching — hybrid L1/L2 (shared reference)
 - `references/input-limits.md` — InputLimits constants
-- `references/build-and-analyzers.md` — Build & analyzers — gates, branch-aware style enforcement, generator packaging
+- `references/build-and-analyzers.md` — Build & analyzers — gates and policy
 - `references/outbox-debezium-masstransit.md` — Outbox → Debezium → Kafka → MassTransit — the concrete traps
 - `yusufcirak-skills:csharp-ddd` (`../csharp-ddd/SKILL.md`) — .NET Domain-Driven Design & Architecture
 - `yusufcirak-skills:csharp-web-api` (`../csharp-web-api/SKILL.md`) — ASP.NET Core Web API
@@ -53,42 +62,43 @@ Permanent C# rules for this codebase. Every `.cs` edit follows the core below; b
 
 Before the first edit, and again each time the work changes shape, collect signals from what you **touch** (paths, project files), what you **write** (constructs), and what the **user asks**. Invoke every sibling whose signal is present, via the Skill tool. Combinations are the norm; when a signal is ambiguous, load the skill.
 
-| Skill | Load when you see… |
-|---|---|
-| `yusufcirak-skills:csharp-ddd` | entities, aggregates, domain events, strongly-typed ids; `Domain/`, `Modules/<X>/`, `BuildingBlocks/`; "module", "layer", "bounded context"; deciding **where** new code lives |
-| `yusufcirak-skills:csharp-web-api` | `Controllers/`, `Endpoints/`, `[Http*]`, `MapGet/MapPost`, `IRequestHandler`/mediator, slice files, `Program.cs` middleware order, pagination shape |
-| `yusufcirak-skills:csharp-validation` | a request DTO/command/query; any caller-supplied string or file; `AbstractValidator`; length/size/depth limits; `Regex`; `JsonSerializerOptions`/Kestrel/`FormOptions`; output encoding |
-| `yusufcirak-skills:csharp-hardening` | auth/authz, secrets, rate limiting, idempotency, caching, outbound HTTP/queues, file upload, SSRF, `ProblemDetails`, raw SQL, background jobs, multi-tenancy; untrusted text going to an LLM or prompt |
-| `yusufcirak-skills:csharp-observability` | `ILogger` calls or a new log line, metrics, tracing, `ActivitySource`, correlation ids, health checks, telemetry wiring |
-| `yusufcirak-skills:backend-engineering` | **always for backend C#**: any handler, endpoint, consumer, job, repository or module, whether designing, writing, fixing, testing or reviewing; it holds the language-agnostic rules (gate questions, outbox, idempotency, measurement before shipping) that the siblings assume |
-| `yusufcirak-skills:csharp-testing` | files under `*Tests*`, fixtures/test doubles, "add tests", Testcontainers, a bug or security fix that needs a regression test |
 
-Typical bundles (the signals decide): new feature slice → ddd + web-api + validation + hardening + observability + testing (+ every golden path below); endpoint change → web-api + validation (+ testing); security fix → hardening + validation + testing; LLM call → hardening + validation + observability + testing; service bootstrap → web-api + hardening + observability + validation.
+| Skill                                    | Load when you see…                                                                                                                                                                                                                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yusufcirak-skills:csharp-ddd`           | Any work that requires you to do modeling with entities, aggregates, domain events, strongly-typed ids; `Domain/`, `Modules/<X>/`, `BuildingBlocks/`; "module", "layer", "bounded context"; deciding **where** new code lives                                                     |
+| `yusufcirak-skills:csharp-web-api`       | `Controllers/`, `Endpoints/`, `[Http*]`, `MapGet/MapPost`, `IRequestHandler`/mediator, slice files, `Program.cs` middleware order, pagination shape                                                                                                                               |
+| `yusufcirak-skills:csharp-validation`    | a request DTO/command/query; any caller-supplied string or file; `AbstractValidator`; length/size/depth limits; `Regex`; `JsonSerializerOptions`/Kestrel/`FormOptions`; output encoding                                                                                           |
+| `yusufcirak-skills:csharp-hardening`     | endpoints and handlers, auth/authz, secrets, rate limiting, idempotency, caching, outbound HTTP/queues, file upload, SSRF, `ProblemDetails`, raw SQL, background jobs, multi-tenancy; untrusted text going to an LLM or prompt                                                    |
+| `yusufcirak-skills:csharp-observability` | Mostly in every handler, worker and endpoint. Important actions and outcomes, edge cases needs to be logged, traced and have meaningful metrics.                                                                                                                                  |
+| `yusufcirak-skills:csharp-testing`       | Any new feature or functionality or altering the existing ones that can be tested.                                                                                                                                                                                                |
+
+
+Typical bundles (the signals decide): new feature slice → ddd + web-api + validation + hardening + observability + testing; endpoint change → web-api + validation (+ testing); security fix → hardening + validation + testing; LLM call → hardening + validation + observability + testing; service bootstrap → web-api + hardening + observability + validation.
 
 Re-route at these checkpoints: a new file type or layer enters the change; a log statement is added; a request type or user-supplied string appears; an outbound call (HTTP, LLM, queue) is added; the first test is written; and once more over the final diff before reporting done.
 
-## Golden paths (apply to every feature, unasked)
+## Then load references
 
-Every new endpoint, handler, consumer, job or module is checked against ALL golden paths below, not only the ones the user mentioned. Skipping hardening, logging, concurrency or security because the user did not ask is a defect. For each line, either apply it or write one line saying why it does not apply. Open the linked reference when the line is relevant to the change.
+Same rule as the sibling table: collect signals from what you **touch**, **write** and are **asked**, then open every reference whose signal appears (read it before the edit, not after). Check again at the same checkpoints as routing.
 
-- **api-surface**: Declare cross-cutting policy on the route, version from day one, clamp pagination at the boundary, and keep one documented middleware order. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/api-surface.md`)
-- **architecture-modular-monolith**: One deployable; modules own their data and talk only through a published contracts package and events; enforce the dependency direction with an executable rule. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/architecture-modular-monolith.md`)
-- **build-ci-performance**: Warnings fail the build with an explicit exception list, versions are pinned in one place, and performance work starts with a measurement and removes round trips before allocations. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/build-ci-performance.md`)
-- **caching**: Use a two-level cache with single-flight, stale-while-revalidate and cross-node invalidation from a library; never cache counters or freshness-critical decisions. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/caching.md`)
-- **cqrs-use-case-pipeline**: One request, one handler; cross-cutting checks are pipeline steps opted into by marker; declare the step order in one place and test it. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/cqrs-use-case-pipeline.md`)
-- **ddd-tactical**: Build aggregates only through factories that return success-or-error, give every aggregate its own id type, keep cross-cutting ports out of the domain layer, and raise events inside the aggregate. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/ddd-tactical.md`)
-- **error-model**: Expected failures are values with code, message and status, mapped to the wire format in exactly one place; exceptions are for bugs and invariant violations. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/error-model.md`)
-- **idempotency-locking-concurrency**: Scope idempotency keys by caller and tenant, claim them atomically, use a renewing non-blocking lock only for genuinely-once work, and detect lost updates with a database-maintained version. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/idempotency-locking-concurrency.md`)
-- **measurement-driven-verification**: Before a feature reaches users, measure its effect on system resources against the old behavior under the same workload, fix every regression you find without breaking the structure already built, attack it with harder realistic scenarios, look for a better design, and do all of it in the user's own isolated environment. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/measurement-driven-verification.md`)
-- **multi-tenancy**: Apply the tenant predicate automatically on reads, enforce it fail-closed on every write path, resolve the tenant from a trusted source, and keep the bypass explicit and greppable. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/multi-tenancy.md`)
-- **observability**: One resource identity across traces, metrics and logs; correlation and causation ids carried in ambient context across every hop; masking applied in the log pipeline. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/observability.md`)
-- **outbox-inbox-messaging**: Write the event row in the same transaction as the state change, run exactly one relay, deliver at-least-once, and make every consumer idempotent with a unique (message id, consumer) marker. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/outbox-inbox-messaging.md`)
-- **persistence-migrations**: Derive names by convention, make writes explicit about tracking, migrate with expand/contract, clamp page size at the boundary, and prefer keyset paging at scale. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/persistence-migrations.md`)
-- **rate-limiting-load-shedding**: Key limits on the authenticated principal or server-observed IP plus the matched route template, count in one authoritative store, shield it with an equal-cap local limiter, and fail open with a metric. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/rate-limiting-load-shedding.md`)
-- **resilience-lifecycle**: Bound every client-controlled resource and every outbound call, split probes into startup/liveness/readiness, flip readiness at SIGTERM, and keep a written fail-open/closed list. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/resilience-lifecycle.md`)
-- **security-hardening**: Deny by default, validate issuer, audience, lifetime and signature with tight skew, keep a revocation path, trust proxy headers only from known proxies, and mask logs by key name. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/security-hardening.md`)
-- **testing-strategy**: Unit tests for logic, executable architecture rules for dependency direction, and a few integration tests against real infrastructure for what fakes cannot prove. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/testing-strategy.md`)
-- **untrusted-input-outbound**: Treat attacker-influenced data as data: parameterise queries, guard every caller-chosen outbound URL against internal ranges, validate uploads by content, and isolate untrusted text in prompts. (`yusufcirak-skills:backend-engineering`, `../../backend/backend-engineering/references/untrusted-input-outbound.md`)
+| Reference                                                                     | Open when you see…                                                                                                                                                                         |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `references/linq.md`                                                          | `Select`/`SelectMany`/`GroupBy`/`Join`/`Aggregate`, a `foreach` that accumulates, an `IQueryable` projection, LINQ on a per-request or per-message path                                  |
+| `references/performance.md`                                                   | a per-request/record/message path, string building or concat in a loop, `MemoryStream`, a closure on a hot path, `List<T>` growth, JSON source-gen or Native AOT                           |
+| `references/async-concurrency.md`                                             | `async`/`await`, `ConfigureAwait`, `ValueTask`, `CancellationToken`, `Parallel.ForEachAsync`, `Channel<T>`, `BackgroundService`, a lock or semaphore                                       |
+| `references/composition.md`                                                   | `IOptions<T>`, `AddX`/`UseX` extensions, keyed DI, guard clauses, a library or NuGet package surface, XML docs                                                          |
+| `references/state-as-types.md`                                                | an entity with a `Status`/`State` enum or bool flags, "approve/reject/cancel" transitions                                                                                                  |
+| `references/value-object-base.md`, `references/strongly-typed-ids-and-value-objects.md` | a new value object, a typed id, `Vogen`, EF or JSON converters for them                                                                                                          |
+| `references/monads.md`                                                        | `Result<T>`/`Option<T>`, a chain of fallible steps, `try`/`catch` for expected failures, nullable returns for "not found"                                                                  |
+| `references/ef-core-data-access.md`                                           | `DbContext`, `IQueryable`, `Include`, paging, `SaveChanges`, bulk work, migrations, value-object columns                                                                                   |
+| `references/mediator.md`                                                      | `IRequest`, `IRequestHandler`, `IPipelineBehavior`, `AddMediator`/`AddMediatR`, a new handler                                                                                              |
+| `references/mapping.md`                                                       | converting one object to another (`ToDto`, `ToResponse`, an AutoMapper/Mapperly mention)                                                                                                   |
+| `references/resilience.md`                                                    | `HttpClient`, `AddHttpClient`, a call to another service, retry/timeout/circuit-breaker, Polly                                                                                             |
+| `references/root-client.md`                                                   | one platform with several downstream APIs, a client class wrapping a third-party SDK                                                                                                       |
+| `references/caching.md`                                                       | `IMemoryCache`, `IDistributedCache`, `HybridCache`, FusionCache, "cache this", Redis reads                                                                                                 |
+| `references/input-limits.md`                                                  | `InputLimits`, a `MaximumLength` or size cap, a request DTO                                                                                                                                |
+| `references/build-and-analyzers.md`                                           | `Directory.Build.props`, `TreatWarningsAsErrors`, an analyzer or source-generator package, `WarningsNotAsErrors`                                                                           |
+| `references/outbox-debezium-masstransit.md`                                   | outbox table, domain event publishing, Debezium, Kafka, MassTransit consumer, inbox dedup                                                                                                  |
 
 ## Namespaces & file organization
 
@@ -126,7 +136,7 @@ Records, the whole value object in one file, one static factories class with one
 
 ## Errors
 
-`Result<T>` / `Option<T>` carry expected failures and optionals; exceptions signal programmer error and truly exceptional states. Library choice (YC.Monad first, else the codebase's existing monad) and usage: `references/monads.md`.
+`Result<T>` / `Option<T>` carry expected failures and optionals; exceptions signal programmer error and truly exceptional states. Use the codebase's existing monad (`YC.Monad` by default). Idea: `references/monads.md`; picking and installing a library: `references/setups/monads.md`.
 
 ## Modern C#
 
@@ -200,25 +210,7 @@ builder.Services.AddHttpClient<CatalogClient>(client =>
 - Cross-cutting names (HTTP headers, claim types, baggage/log keys, policy/queue/topic names, message headers) are defined once in a static class in the lowest layer every consumer references — telemetry keys in `BuildingBlocks.Application` (`TelemetryConstants`), **not** Domain (see `yusufcirak-skills:csharp-ddd` → cross-cutting ports); broker wire headers in the messaging Infrastructure project (`MessageHeaders`) — so producer, logs, and consumer agree.
 - Options types carry their config path as `public const string SectionName`. Input size limits live in `InputLimits` (`yusufcirak-skills:csharp-validation`).
 
-## References — load when
-
-| File | Load when |
-|---|---|
-| `references/linq.md` | aggregating, projecting, joining, or correlating collections; LINQ vs loop; ZLinq; `Single`/`ToDictionary`/`Join`/`Zip` pitfalls |
-| `references/performance.md` | per-request/record/message paths; string building (ZString); pooled streams; closures and allocations; JSON source-gen / Native AOT |
-| `references/async-concurrency.md` | async library code, `ConfigureAwait`, `ValueTask`, `CancellationToken`, `Parallel.ForEachAsync`, channels, `BackgroundService` |
-| `references/composition.md` | options binding + validation, `AddX`/`UseX` extensions, keyed DI, guard clauses, library/NuGet surface, XML docs |
-| `references/state-as-types.md` | modeling an entity that moves through states |
-| `references/value-object-base.md` · `strongly-typed-ids-and-value-objects.md` | writing a value object or typed id; EF/JSON converters |
-| `references/monads.md` | choosing or using `Result<T>` / `Option<T>` |
-| `references/ef-core-data-access.md` | EF Core queries, paging, bulk work, value-object persistence |
-| `references/mediator.md` | picking a mediator library, AutoMapper → Mapperly |
-| `references/resilience.md` | outbound calls: Polly v8 pipelines, chaos testing |
-| `references/root-client.md` | one platform with several downstream APIs: `platform.Api.Method()` facade, lazy typed sub-clients |
-| `references/caching.md` | application cache (hybrid L1/L2, FusionCache) |
-| `references/input-limits.md` | the `InputLimits` constants class |
-| `references/build-and-analyzers.md` | `Directory.Build.props` / analyzer gates, `PrivateAssets` for generators, slow builds |
-| `references/outbox-debezium-masstransit.md` | outbox, Debezium connector, MassTransit Kafka consumer, polling relay |
+Setup of a library or package (install, registration, packages) never lives in the topic reference: it sits one level down in `references/setups/<topic>.md`. Open it only when adding that dependency to a project that lacks it.
 
 ## Decision notes
 
