@@ -2,7 +2,6 @@
 name: csharp-observability
 description: Instruments .NET/ASP.NET Core services with vendor-neutral OpenTelemetry (OTLP + any collector). Use when wiring telemetry in `Program.cs`, configuring exporters/processors/sampling, adding traces, metrics or logs, or setting up health checks/probes.
 ---
-
 # Observability (OpenTelemetry-native, FAANG-level)
 
 ## Contents
@@ -45,6 +44,7 @@ Per-user and per-request detail goes to traces and logs. Only bounded, aggregate
 ### Logs
 
 - Log every important action and its outcome, and every edge case (rejected, skipped, retried, degraded). Silence on a failure path is a defect.
+- Favor creating scopes and attaching contextual information first. Don't repeat or use any identical information that multiple messages can have, wrap them in a scope.
 - **`[LoggerMessage]` source-generated methods are the default for all application logging with a fixed message**, not just hot paths. They emit zero-allocation, strongly typed calls (no boxing, no template parse per call), and the `Log` class doubles as the catalog of every event the service emits. Inline `logger.LogInformation("...", args)` is only for throwaway dev-time logging. Enforce with analyzer CA1848 escalated to a warning in `.editorconfig` (see the setup file).
 - Keep each message minimal. Context that holds for the whole operation (entity id, user, tenant, correlation) is attached once with `ILogger.BeginScope` (or baggage) where the operation starts, and every line inside inherits it. A message carries only what is specific to that event (the outcome, a count, a status). Before adding a field to a message or scope, check what is already in scope (handler, middleware, job, parent handler, baggage) and never add it twice. If a needed field is missing, add it to the scope at the entry point instead of passing it into each `[LoggerMessage]`.
 - Attribute names are snake_case, written that way in the template: `[LoggerMessage(Message = "settled {order_id} in {elapsed_ms}")]`. Framework scope keys stay PascalCase, which is fine (see Gotchas).
@@ -55,10 +55,10 @@ Per-user and per-request detail goes to traces and logs. Only bounded, aggregate
 ```csharp
 internal static partial class Log
 {
-    [LoggerMessage(EventId = 2001, Level = LogLevel.Information, Message = "settled {order_id} in {elapsed_ms}")]
-    public static partial void OrderSettled(ILogger logger, string order_id, double elapsed_ms);
+    [LoggerMessage(EventId = 2001, Level = LogLevel.Information, Message = "settled order in {elapsed_ms}")]
+    public static partial void OrderSettled(ILogger logger, double elapsed_ms);
 }
-Log.OrderSettled(logger, id, ms);
+Log.OrderSettled(logger, ms);
 ```
 
 ### Traces
@@ -110,6 +110,16 @@ var correlationId =
     ?? Guid.CreateVersion7().ToString();
 Activity.Current?.SetBaggage("correlation_id", correlationId);
 ```
+
+
+
+### Checklist for any handler in the system
+
+- [ ] Log entries are well formed and seperated with their own scope with contextual information.
+- [ ] Edge cases and unexpected scenarios have log entries, every possible outcome is understandable if logs/metrics/traces are checked and alerts are fired so developers can acknowledge and react before customers do.
+- [ ] Outcomes that makes sense to be tracked, known has logs and metrics.
+- [ ] Incoming and outgoing operations are traceable. 
+
 
 ### Health & probes
 

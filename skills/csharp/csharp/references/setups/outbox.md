@@ -20,7 +20,7 @@ With `publication.autocreate.mode=filtered` the publication is created when the 
 
 Select with one setting (`Outbox:Relay = Debezium | Polling`) and run exactly one, since both would double-publish. Split claim from publish so a broker round-trip never holds a DB connection:
 
-1. **Claim**: `UPDATE ... WHERE id IN (SELECT ... FOR UPDATE SKIP LOCKED LIMIT n) RETURNING ...` leases a batch in one auto-committed statement. `SKIP LOCKED` lets several relay instances run without contention.
+1. **Claim**: `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED LIMIT n) RETURNING …` leases a batch in one auto-committed statement. `SKIP LOCKED` lets several relay instances run without contention.
 2. **Publish**: produce to Kafka holding no DB connection.
 3. **Complete**: a short second statement stamps `processed_on`. A failed publish keeps its lease and is retried once it expires, so a crashed relay self-heals.
 
@@ -28,4 +28,4 @@ Emit the exact wire format Debezium would (topic, key = aggregate id, raw JSON v
 
 ## Windows tooling gotcha
 
-Git Bash rewrites `docker exec ... /opt/kafka/bin/...` paths (`C:/Program Files/Git/opt/...`) and the command fails silently under `2>/dev/null`. Prefix with `MSYS_NO_PATHCONV=1`.
+Git Bash rewrites `docker exec … /opt/kafka/bin/…` paths (`C:/Program Files/Git/opt/…`) and the command fails silently under `2>/dev/null`. Prefix with `MSYS_NO_PATHCONV=1`.

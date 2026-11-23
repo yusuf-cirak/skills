@@ -14,7 +14,7 @@
 - Keyset paging, transactions & bulk backfills
 - Related
 
-> EF Core. Version tags inline. Security/hardening rules for EF live in `yusufcirak-skills:csharp-hardening` → EF Core
+> EF Core. Version tags inline. Security/hardening rules for EF live in `yusufcirak-skills:csharp-hardening` → Data access & Multi-Tenancy
 > Hardening; this ref owns **performance** and **domain-type persistence**.
 
 ## DbContext defaults — no-tracking, split query

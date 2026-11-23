@@ -68,6 +68,18 @@ services.AddRedisRateLimiting(o =>
 });
 ```
 
+- Hand-rolled sliding window with Redis sorted sets (Lua), atomic per call:
+
+```text
+-- KEYS[1]=partition  ARGV[1]=nowMs  ARGV[2]=windowMs  ARGV[3]=permitLimit  ARGV[4]=requestId
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[1] - ARGV[2])
+local count = redis.call('ZCARD', KEYS[1])
+if count >= tonumber(ARGV[3]) then return 0 end
+redis.call('ZADD', KEYS[1], ARGV[1], ARGV[4])
+redis.call('PEXPIRE', KEYS[1], ARGV[2])
+return 1
+```
+
 - **Fail open.** With `AbortOnConnectFail = false` and a guard on `IConnectionMultiplexer.IsConnected`, degrade to a per-node in-memory limiter when Redis is down, and emit a `ratelimit.fallback` counter.
 - **Local ban mirror plus pub/sub.** The hot path reads a per-node `IMemoryCache` mirror of active bans (0 Redis ops when not banned). Banning sets the local entry, `PUBLISH`es on a channel, and writes a TTL key to Redis for durability. An `IHostedService` subscribes and mirrors every broadcast. Pub/sub is best-effort, which is acceptable because bans are short and the limiter still enforces.
 - **Two-tier limiter.** A per-node in-memory limiter whose cap equals the global permit limit fronts the Redis limiter (a `RateLimiter` subclass composing the library's Redis limiter). A local reject never touches Redis. Gate it behind `RateLimiting:LocalPreLimit` (default on, distributed mode only).

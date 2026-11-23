@@ -58,7 +58,9 @@ public partial class ActivityMapper
 The de-facto guard vocabulary for programmer-error preconditions. Recommend it only when guards are scattered and inconsistent and no convention exists. Otherwise match the codebase's own guard style.
 
 ```csharp
+Guard.Against.Null(input);
 Guard.Against.NullOrWhiteSpace(name);
+Guard.Against.NegativeOrZero(qty);
 Guard.Against.OutOfRange(page, nameof(page), 1, InputLimits.MaxPageSize);
 
 // project-specific guard as an extension, so the call site stays Guard.Against.*

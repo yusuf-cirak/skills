@@ -28,7 +28,7 @@ Load when adding an analyzer or source generator package, editing `Directory.Bui
 - Vogen: `<PackageReference Include="Vogen" ExcludeAssets="contentFiles" PrivateAssets="analyzers" />`. `ExcludeAssets="contentFiles"` hides its redundant `Vogen.targets` node in the IDE (the real one ships in `buildTransitive/` and is unaffected).
 - Reference a generator only in the projects that use its output. A generator re-runs in every project that references it, and scoping generators cut `CoreCompile` by about 88% in a 23-project solution.
 - Prefer the plain package over its "drop-in generator" variant when only the runtime types are needed: `ZLinq`, not `ZLinq.DropInGenerator`, whose codegen re-ran in all 23 projects and was the largest generator cost.
-- Ubiquitous libraries (`ZLinq`, the Result/Option library) can get a global `<Using Include="..." />` in `Directory.Build.props`. Keep that list tiny.
+- Ubiquitous libraries (`ZLinq`, the Result/Option library) can get a global `<Using Include="…" />` in `Directory.Build.props`. Keep that list tiny.
 
 ## Diagnosing a slow build
 
